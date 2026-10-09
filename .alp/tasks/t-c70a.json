@@ -12,19 +12,31 @@
   "assignee": null,
   "handoff": null,
   "verified": null,
-  "closed": null,
+  "closed": {
+    "at": "2026-10-09T16:17:18.628Z",
+    "by": "main",
+    "reason": "done",
+    "summary": "https://tools.anhlp.com live: 27 client-side tools (Base64, JSON, HTML, Crypto, Misc), Notion-style UI, GitHub Pages via Actions (repo phucanh08/tools) with headless-Chrome gate in CI, Cloudflare CNAME DNS-only, HTTPS cert approved + enforced. Low-priority follow-up in t-4cb0."
+  },
   "log": [
     {
       "at": "2026-10-09T14:49:14.285Z",
       "by": "main",
       "event": "created"
+    },
+    {
+      "at": "2026-10-09T16:17:18.628Z",
+      "by": "main",
+      "event": "closed",
+      "reason": "done",
+      "summary": "https://tools.anhlp.com live: 27 client-side tools (Base64, JSON, HTML, Crypto, Misc), Notion-style UI, GitHub Pages via Actions (repo phucanh08/tools) with headless-Chrome gate in CI, Cloudflare CNAME DNS-only, HTTPS cert approved + enforced. Low-priority follow-up in t-4cb0."
     }
   ],
-  "rev": 1,
+  "rev": 2,
   "id": "t-c70a",
   "title": "Web developer tools trên GitHub Pages tại tools.anhlp.com",
-  "status": "open",
+  "status": "closed",
   "createdBy": "main",
   "createdAt": "2026-10-09T14:49:14.285Z",
-  "updatedAt": "2026-10-09T14:49:14.285Z"
+  "updatedAt": "2026-10-09T16:17:18.628Z"
 }

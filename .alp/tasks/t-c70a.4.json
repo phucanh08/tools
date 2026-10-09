@@ -12,21 +12,121 @@
   "related": [],
   "gates": [],
   "assignee": null,
-  "handoff": null,
+  "handoff": {
+    "outcome": "complete",
+    "summary": "t-c70a.4 is done as 3 local commits on main (not pushed): ba68948, de9191d and 2a05676, on base 1eee81c. Lead wrote all of the code; no peer was used. An independent reviewer (codex:gpt-6-astra, read-only) gave PASS on all 7 criteria with no findings. Moving the task to review for main.\n\n(1) CI: the build job now runs `pnpm browser` after smoke and before upload-pages-artifact, with CHROME_PATH=/usr/bin/google-chrome. That is the Chrome GitHub preinstalls. The runner-images manifests for both Ubuntu 24.04 and 26.04 list Google Chrome, and install-google-chrome.sh installs it at /usr/bin/google-chrome. So the ubuntu-latest switch (starting 2026-10-19, finishing 2026-11-19, per runner-images#14748) should not break it. The step prints `google-chrome --version` first, so a future image without Chrome fails clearly. A failing check fails the build job, and deploy needs build. Screenshots are uploaded as the artifact `browser-screenshots` (if: !cancelled(), kept 7 days). A new vitest case pins the step order, CHROME_PATH, no continue-on-error, and deploy needs build. I used the preinstalled Chrome instead of browser-actions/setup-chrome: it needs no extra third-party action and no ~150 MB download per run. setup-chrome@v2 is the fallback if a future image drops Chrome.\n\n(2) pnpm: NOT migrated. We keep pnpm 10.33.3 + pnpm/action-setup@v6. Reasons:\n- pnpm/setup is young and changes often. The repo was created 2026-05-11, and it has had 3 major versions in 4 months: v1 on Jun 15, v2 on Aug 4 (requires pnpm ≥11), v3 on Sep 20 (breaking cache-key change).\n- It has many open reliability issues: #69 hangs until the job timeout after a failed cache restore, #67 store prune empties the cache, #64 intermittent network failures, #47/#48 stale major tags, #51 setup modifies pnpm-lock.yaml, #34/#58 version mismatch.\n- pnpm 11 changes defaults: minimumReleaseAge, allowBuilds replacing onlyBuiltDependencies, .npmrc limited to auth/registry.\n- pnpm itself is already at v12.10.1, so v11 is not even the current target.\n- pnpm 10 is still maintained (10.34.6 released 2026-09-29), and pnpm/action-setup v6.1.0 (2026-09-05) still supports pnpm 10.\nSources: https://github.com/pnpm/setup/releases, https://github.com/pnpm/setup/issues, https://pnpm.io/blog/releases/11.0, https://github.com/pnpm/action-setup/releases. Reconsider once pnpm/setup has a stable major for a few months, together with a deliberate move to pnpm 12.\n\n(3a) JSON Diff table and JSON Tree branches now have their own CSS, using the existing theme tokens for light and dark.\n- Before the fix, each row's text inherited its kind's color.\n- Diff rows now use neutral text. The kind shows in the badge and a 3px left rule; Before/After values get a soft red/green wash, and empty cells show a muted dash that screen readers skip.\n- Tree branches get hover/focus on the toggle, a type chip, and a highlighted guide line when hovering the toggle.\n- browser-check now also screenshots JSON Tree (expanded) and JSON Diff (one difference of each kind, and it asserts 4 rows) in light and dark. I looked at all four screenshots.\n\n(3b) smoke and browser-check no longer spawn `pnpm exec vite preview` and kill() it. They use Vite's preview() API in-process through the new scripts/preview-server.mjs, await close(), and fail if anything still listens on the port afterwards.",
+    "candidate": [
+      "base 1eee81c → HEAD 2a05676 on main (local, not pushed)",
+      "ba68948 fix(scripts): run vite preview in-process with verified teardown",
+      "de9191d style(json): style JSON Diff table and JSON Tree branches",
+      "2a05676 ci: run headless-Chrome browser check before deploying"
+    ],
+    "scope": [
+      ".github/workflows/deploy.yml",
+      "README.md",
+      "scripts/browser-check.mjs",
+      "scripts/preview-server.mjs (new)",
+      "scripts/smoke.mjs",
+      "src/styles.css",
+      "src/workflow.test.ts",
+      "package.json / pnpm-lock.yaml unchanged (no pnpm migration); .alp/ untouched (the pre-existing modified .alp/tasks files are not mine and were not staged)"
+    ],
+    "verification": [
+      "pnpm typecheck → exit 0 (one TS2532 in the new test was fixed before committing)",
+      "pnpm lint → exit 0",
+      "pnpm test → Test Files 7 passed, Tests 105 passed (105)",
+      "pnpm build → ✓ built in 234ms",
+      "pnpm smoke → 'ok  preview server closed, port 4179 free' / 'smoke: OK (27 tool routes)'",
+      "pnpm browser → exit 0, 'chrome: /Applications/Google Chrome.app/...', 'ok   preview server closed, port 4180 free', 'browser-check: OK (27 tool routes + home + 404, 0 console/CSP errors)'",
+      "lsof -nP -iTCP:4180 -iTCP:4179 -sTCP:LISTEN after browser → exit 1 (no listener); ps shows no leftover vite or headless Chrome",
+      "actionlint 1.7.12 (release binary, checksum-verified) on deploy.yml → 'Found total 0 errors' (the shellcheck/pyflakes rules were skipped because those tools are not installed)",
+      "Screenshots .artifacts/screenshots/json-diff-{light,dark}.png and json-tree-{light,dark}.png inspected visually; earlier screenshots confirmed the old whole-row kind coloring",
+      "Independent review: reviewer on codex:gpt-6-astra, read-only, verdict PASS for all 7 criteria, no findings. Its sandbox blocked pnpm typecheck/test (EPERM on writes), so it ran read-only equivalents: tsc API, actionlint, lint, YAML assertions, node --check, and source inspection of the installed Vite and Playwright code",
+      "Proven only by the real CI run after main pushes: Chrome 154 on the Ubuntu runner works with playwright-core 1.64, Linux headless clipboard and fonts behave, the artifact upload works, and the run time is acceptable (~90s locally)"
+    ],
+    "risks": [
+      "The hosted workflow has not run yet. The first push to main is the real test of the Linux Chrome/clipboard/fonts behavior. If it fails, deploy is blocked until it is fixed (that is the intended gate), so watch the first run.",
+      "Runner Chrome versions change with image updates while playwright-core is pinned in the lockfile. A future Chrome update could break the CDP connection; the gate would catch that, not prevent it.",
+      "Adds about 1.5 minutes per deploy (browser-check takes ~90s locally).",
+      "If a future Ubuntu image drops /usr/bin/google-chrome, the step fails at the --version line; the fix is to switch to browser-actions/setup-chrome@v2 and use its chrome-path output."
+    ],
+    "discovered": [
+      "Cosmetic, pre-existing: in the browser-check fullPage screenshots the sidebar stops at ~860px (sticky 100vh sidebar), so long pages look cut off at the bottom-left. This probably only affects the screenshots, not real use; it needs a quick check.",
+      "Future: reconsider moving to pnpm/setup together with pnpm 12 (not 11) once pnpm/setup has a stable major for a few months."
+    ],
+    "ownership": "My two board claims (p-c001ee05, p-1e4cff6e) have been removed. No peers are running, and the worktree is clean apart from the pre-existing .alp/tasks changes. Main owns the push and the acceptance of t-c70a.4.",
+    "verdict": {
+      "result": "pass",
+      "criteria": [
+        {
+          "criterion": "CI runs pnpm browser before deploy; a failure blocks deploy",
+          "result": "pass",
+          "evidence": "deploy.yml build job: smoke → browser → upload-pages-artifact; deploy needs build; workflow.test.ts enforces this; actionlint 0 errors; reviewer PASS"
+        },
+        {
+          "criterion": "CHROME_PATH works on Ubuntu 24.04 and after the switch to 26.04",
+          "result": "pass",
+          "evidence": "runner-images Ubuntu2404/2604 READMEs both list Google Chrome 154; install-google-chrome.sh installs it at /usr/bin/google-chrome. Static check only; the real CI run is still to come"
+        },
+        {
+          "criterion": "pnpm 11 + pnpm/setup evaluated, migrated only if stable",
+          "result": "pass",
+          "evidence": "Not migrated; reasons and sources in the summary"
+        },
+        {
+          "criterion": "diff-table and tree-branch have their own CSS in light and dark",
+          "result": "pass",
+          "evidence": "styles.css rules added; screenshots for both tools in both themes inspected"
+        },
+        {
+          "criterion": "Reliable preview teardown with no leftover listener",
+          "result": "pass",
+          "evidence": "Vite preview() in-process with awaited close() and a port probe; after pnpm browser, lsof found no listener (exit 1)"
+        }
+      ]
+    },
+    "agent": "lead",
+    "at": "2026-10-09T16:12:32.220Z"
+  },
   "verified": null,
-  "closed": null,
+  "closed": {
+    "at": "2026-10-09T16:17:08.891Z",
+    "by": "main",
+    "reason": "done",
+    "summary": "Commits ba68948, de9191d, 2a05676 pushed. CI now runs headless-Chrome browser check before deploy (run 37957679506 passed incl. \"Browser check (headless Chrome)\", deployed). JSON Diff/Tree CSS added (screenshot inspected), in-process preview teardown. pnpm stays 10 + action-setup@v6 (pnpm/setup unstable; sources in handoff). Main re-ran typecheck/lint/105 tests/build/smoke/browser OK. Codex reviewer PASS, no findings."
+  },
   "log": [
     {
       "at": "2026-10-09T15:48:26.436Z",
       "by": "main",
       "event": "created"
+    },
+    {
+      "at": "2026-10-09T15:59:30.466Z",
+      "by": "main",
+      "event": "started",
+      "to": "lead",
+      "assignment": "alp-child-b06512e6-fc04-435e-ad6a-e2978fbd5571"
+    },
+    {
+      "at": "2026-10-09T16:12:32.220Z",
+      "by": "lead",
+      "event": "submitted",
+      "outcome": "complete"
+    },
+    {
+      "at": "2026-10-09T16:17:08.891Z",
+      "by": "main",
+      "event": "closed",
+      "reason": "done",
+      "summary": "Commits ba68948, de9191d, 2a05676 pushed. CI now runs headless-Chrome browser check before deploy (run 37957679506 passed incl. \"Browser check (headless Chrome)\", deployed). JSON Diff/Tree CSS added (screenshot inspected), in-process preview teardown. pnpm stays 10 + action-setup@v6 (pnpm/setup unstable; sources in handoff). Main re-ran typecheck/lint/105 tests/build/smoke/browser OK. Codex reviewer PASS, no findings."
     }
   ],
-  "rev": 1,
+  "rev": 4,
   "id": "t-c70a.4",
   "title": "Chạy browser-check trong CI và cân nhắc lên pnpm 11 + pnpm/setup",
-  "status": "open",
+  "status": "closed",
   "createdBy": "main",
   "createdAt": "2026-10-09T15:48:26.436Z",
-  "updatedAt": "2026-10-09T15:48:26.436Z"
+  "updatedAt": "2026-10-09T16:17:08.891Z"
 }

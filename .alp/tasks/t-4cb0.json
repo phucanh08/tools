@@ -1,0 +1,30 @@
+{
+  "description": "(1) Trong ảnh chụp fullPage của browser-check, sidebar (sticky, 100vh) dừng ở ~860px. Nhiều khả năng chỉ ảnh hưởng ảnh chụp, cần kiểm tra nhanh trên trang dài khi cuộn thật. (2) Xem xét lại việc chuyển sang pnpm/setup cùng pnpm 12 khi pnpm/setup đã có một bản major ổn định trong vài tháng (hiện vẫn giữ pnpm 10.33.3 + pnpm/action-setup@v6).",
+  "type": "chore",
+  "priority": 4,
+  "labels": [],
+  "paths": [],
+  "parent": null,
+  "blockedBy": [],
+  "discoveredFrom": "t-c70a.4",
+  "related": [],
+  "gates": [],
+  "assignee": null,
+  "handoff": null,
+  "verified": null,
+  "closed": null,
+  "log": [
+    {
+      "at": "2026-10-09T16:17:15.846Z",
+      "by": "main",
+      "event": "created"
+    }
+  ],
+  "rev": 1,
+  "id": "t-4cb0",
+  "title": "Kiểm tra sidebar bị cắt ở ảnh full-page; cân nhắc pnpm 12 + pnpm/setup khi ổn định",
+  "status": "open",
+  "createdBy": "main",
+  "createdAt": "2026-10-09T16:17:15.846Z",
+  "updatedAt": "2026-10-09T16:17:15.846Z"
+}

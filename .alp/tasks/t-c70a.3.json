@@ -1,5 +1,5 @@
 {
-  "description": "CNAME tools → phucanh08.github.io, Proxy status: DNS only (để GitHub cấp cert Let's Encrypt). Sau khi cert cấp xong có thể bật Enforce HTTPS trên GitHub. Máy chưa có credential Cloudflare: anh tự tạo hoặc cấp API token (Zone.DNS:Edit).",
+  "description": "CNAME tools → phucanh08.github.io, Proxy status: DNS only (để GitHub cấp cert Let's Encrypt). Sau khi DNS resolve và cert cấp xong, main bật Enforce HTTPS: gh api -X PUT repos/phucanh08/tools/pages -F https_enforced=true. Máy chưa có credential Cloudflare: anh tự tạo hoặc cấp API token (Zone.DNS:Edit).",
   "type": "chore",
   "priority": 2,
   "labels": [],
@@ -24,7 +24,12 @@
   "assignee": null,
   "handoff": null,
   "verified": null,
-  "closed": null,
+  "closed": {
+    "at": "2026-10-09T16:17:10.680Z",
+    "by": "main",
+    "reason": "done",
+    "summary": "User created CNAME tools → phucanh08.github.io (DNS only), verified via Cloudflare NS, 1.1.1.1, 8.8.8.8. Cert was stuck ~20 min; re-adding custom domain triggered issuance: state approved, expires 2027-01-07. https_enforced=true. https://tools.anhlp.com/ 200, /json/diff 200, http → 301 https."
+  },
   "log": [
     {
       "at": "2026-10-09T14:49:20.799Z",
@@ -42,13 +47,34 @@
       "by": "user",
       "event": "gate cleared",
       "gate": "g1 human: Anh tạo CNAME trên Cloudflare (hoặc cấp API token) rồi approve."
+    },
+    {
+      "at": "2026-10-09T15:53:00.460Z",
+      "by": "main",
+      "event": "updated",
+      "fields": [
+        "description"
+      ]
+    },
+    {
+      "at": "2026-10-09T15:55:09.878Z",
+      "by": "main",
+      "event": "started",
+      "to": "main"
+    },
+    {
+      "at": "2026-10-09T16:17:10.680Z",
+      "by": "main",
+      "event": "closed",
+      "reason": "done",
+      "summary": "User created CNAME tools → phucanh08.github.io (DNS only), verified via Cloudflare NS, 1.1.1.1, 8.8.8.8. Cert was stuck ~20 min; re-adding custom domain triggered issuance: state approved, expires 2027-01-07. https_enforced=true. https://tools.anhlp.com/ 200, /json/diff 200, http → 301 https."
     }
   ],
-  "rev": 3,
+  "rev": 6,
   "id": "t-c70a.3",
   "title": "Cloudflare DNS: CNAME tools.anhlp.com → phucanh08.github.io",
-  "status": "open",
+  "status": "closed",
   "createdBy": "main",
   "createdAt": "2026-10-09T14:49:20.799Z",
-  "updatedAt": "2026-10-09T15:00:07.382Z"
+  "updatedAt": "2026-10-09T16:17:10.680Z"
 }

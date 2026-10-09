@@ -23,14 +23,15 @@
       }
     }
   ],
-  "assignee": {
-    "agent": "main",
-    "session": "f5f04e1f-1bc3-4b7e-b774-1b80012168d2",
-    "since": "2026-10-09T15:51:29.678Z"
-  },
+  "assignee": null,
   "handoff": null,
   "verified": null,
-  "closed": null,
+  "closed": {
+    "at": "2026-10-09T15:52:58.708Z",
+    "by": "main",
+    "reason": "done",
+    "summary": "Repo https://github.com/phucanh08/tools (public), commit 1eee81c pushed to main. Pages build_type=workflow, cname=tools.anhlp.com. Deploy run 37954867972 succeeded (build+deploy). GitHub Pages serves /json/format for Host tools.anhlp.com (title \"JSON Formatter · Dev Tools\"); phucanh08.github.io/tools/ 301 → tools.anhlp.com. Enforce HTTPS pending DNS + cert (tracked in t-c70a.3)."
+  },
   "log": [
     {
       "at": "2026-10-09T14:49:18.833Z",
@@ -62,13 +63,20 @@
       "by": "main",
       "event": "started",
       "to": "main"
+    },
+    {
+      "at": "2026-10-09T15:52:58.708Z",
+      "by": "main",
+      "event": "closed",
+      "reason": "done",
+      "summary": "Repo https://github.com/phucanh08/tools (public), commit 1eee81c pushed to main. Pages build_type=workflow, cname=tools.anhlp.com. Deploy run 37954867972 succeeded (build+deploy). GitHub Pages serves /json/format for Host tools.anhlp.com (title \"JSON Formatter · Dev Tools\"); phucanh08.github.io/tools/ 301 → tools.anhlp.com. Enforce HTTPS pending DNS + cert (tracked in t-c70a.3)."
     }
   ],
-  "rev": 5,
+  "rev": 6,
   "id": "t-c70a.2",
   "title": "Tạo repo GitHub, push, bật Pages + custom domain",
-  "status": "in_progress",
+  "status": "closed",
   "createdBy": "main",
   "createdAt": "2026-10-09T14:49:18.833Z",
-  "updatedAt": "2026-10-09T15:51:29.678Z"
+  "updatedAt": "2026-10-09T15:52:58.708Z"
 }
