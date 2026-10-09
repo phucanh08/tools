@@ -770,11 +770,63 @@ td > .badge:first-child {
   background: var(--info-soft);
   color: var(--accent);
 }
-tr.diff-row {
-  background: transparent;
-}
 .diff-summary {
   margin: 0 0 0.5rem;
+}
+.diff-summary .badge {
+  font-weight: 500;
+}
+/* JSON Diff table: neutral row text, the kind shown by the badge and a thin
+   left rule; removed/added values get a soft red/green wash (Notion-style). */
+.diff-table tr.diff-row {
+  background: none;
+  color: var(--text);
+}
+.diff-table tbody tr:hover {
+  background: var(--hover);
+}
+.diff-table td:first-child {
+  width: 1%;
+  white-space: nowrap;
+  box-shadow: inset 3px 0 0 var(--diff-rule, var(--border));
+}
+.diff-table tr.diff-added {
+  --diff-rule: var(--ok);
+}
+.diff-table tr.diff-removed {
+  --diff-rule: var(--bad);
+}
+.diff-table tr.diff-changed {
+  --diff-rule: var(--accent);
+}
+.diff-table tr.diff-type {
+  --diff-rule: var(--warn);
+}
+.diff-table td.mono {
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+.diff-table td:nth-child(2) {
+  color: var(--muted);
+  min-width: 8rem;
+}
+.diff-table td:nth-child(3),
+.diff-table td:nth-child(4) {
+  width: 32%;
+}
+.diff-table td:nth-child(3):not(:empty) {
+  background: var(--bad-soft);
+  color: var(--bad);
+}
+.diff-table td:nth-child(4):not(:empty) {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.diff-table td:nth-child(3):empty::after,
+.diff-table td:nth-child(4):empty::after {
+  content: '—';
+  content: '—' / '';
+  color: var(--muted);
 }
 .output-list {
   list-style: none;
@@ -862,6 +914,35 @@ tr.diff-row {
   cursor: pointer;
   padding: 0;
   font: inherit;
+}
+/* Container nodes: the toggle gets a hover/focus target, and hovering it
+   highlights the guide line of the children it would collapse. */
+.tree-branch > .tree-toggle {
+  border-radius: var(--radius-sm);
+  line-height: 1.35;
+}
+.tree-branch > .tree-toggle:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+.tree-branch > .tree-toggle:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 0;
+}
+.tree-branch > .tree-key {
+  font-weight: 500;
+}
+.tree-branch > .tree-type {
+  margin-left: 0.1rem;
+  padding: 0 0.3rem;
+  border-radius: 3px;
+  background: var(--surface-2);
+}
+.tree-branch > ul {
+  transition: border-color 0.12s;
+}
+.tree-branch:has(> .tree-toggle:hover) > ul {
+  border-left: 1px solid var(--muted);
 }
 .tree-key {
   color: var(--accent);
