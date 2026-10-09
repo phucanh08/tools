@@ -45,6 +45,27 @@ jobs:
       - name: Smoke test
         run: pnpm smoke
 
+      # Headless Chrome over the built site. Uses the Google Chrome that the
+      # GitHub-hosted Ubuntu images preinstall at /usr/bin/google-chrome
+      # (listed in both the 24.04 and 26.04 image manifests); the first command
+      # fails fast with a clear message if a future image drops it.
+      - name: Browser check (headless Chrome)
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+        run: |
+          "$CHROME_PATH" --version
+          pnpm browser
+
+      - name: Upload browser screenshots
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: browser-screenshots
+          path: .artifacts/screenshots
+          if-no-files-found: ignore
+          include-hidden-files: true # the path lives under the dot-directory .artifacts/
+          retention-days: 7
+
       - uses: actions/configure-pages@v6
 
       - uses: actions/upload-pages-artifact@v5

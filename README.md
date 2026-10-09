@@ -44,7 +44,7 @@ pnpm build
 pnpm smoke      # checks dist/ files, CSP meta, per-route HTML, and fetches via vite preview
 pnpm check      # all of the above in order
 
-pnpm browser    # local only: headless Chrome over `vite preview` (needs a prior build)
+pnpm browser    # headless Chrome over `vite preview` (needs a prior build; also runs in CI)
 ```
 
 `pnpm browser` (`scripts/browser-check.mjs`, uses `playwright-core` with the
@@ -53,13 +53,22 @@ all tool routes and a 404, fails on console errors, CSP violations or
 horizontal overflow, exercises key interactions (Base64 encode + copy, JSON
 format, HTML preview sandbox, AES encrypt→decrypt, key-pair generation, mobile
 drawer, theme toggle) and writes screenshots to `.artifacts/screenshots/`
-(git-ignored).
+(git-ignored). `pnpm smoke` and `pnpm browser` start Vite's preview server
+in-process (`scripts/preview-server.mjs`) and fail if its port still has a
+listener after shutdown.
 
 ## Deploy (GitHub Pages)
 
 `.github/workflows/deploy.yml` runs on every push to `main` (and manually via
-*Run workflow*): install → typecheck → lint → test → build → smoke → upload
-`dist/` → deploy with `actions/deploy-pages`.
+*Run workflow*): install → typecheck → lint → test → build → smoke → browser
+check → upload `dist/` → deploy with `actions/deploy-pages`. Any failing step,
+including the headless-Chrome browser check, stops the deploy. The browser
+check uses the Google Chrome preinstalled on GitHub's Ubuntu runner images
+(`CHROME_PATH=/usr/bin/google-chrome`); its screenshots are uploaded as the
+`browser-screenshots` workflow artifact (kept 7 days).
+
+The workflow stays on pnpm 10 with `pnpm/action-setup`; its successor
+`pnpm/setup` only supports pnpm 11+.
 
 One-time repository setup:
 
