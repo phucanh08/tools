@@ -1,17 +1,18 @@
-// Real-browser check of the production build (local only, not run in CI).
-// Starts `vite preview` on dist/, drives a headless Chrome via playwright-core,
+// Real-browser check of the production build (also run in CI before deploy).
+// Serves dist/ with Vite's preview server (in-process), drives a headless Chrome via playwright-core,
 // loads home + every tool route, records console errors / page errors / CSP
 // violations / horizontal overflow, exercises key interactions and saves
 // screenshots to .artifacts/screenshots/.
 //
 // Usage: pnpm build && pnpm browser
-// Chrome path: $CHROME_PATH or /Applications/Google Chrome.app (macOS).
-import { spawn } from 'node:child_process'
+// Chrome path: $CHROME_PATH, else the first existing of Google Chrome.app
+// (macOS), /usr/bin/google-chrome, /usr/bin/chromium (Linux, incl. CI runners).
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { chromium } from 'playwright-core'
+import { startPreview } from './preview-server.mjs'
 
 const CHROME =
-  process.env.CHROME_PATH ??
+  process.env.CHROME_PATH ||
   ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', '/usr/bin/google-chrome', '/usr/bin/chromium'].find(
     (p) => existsSync(p),
   )
@@ -26,12 +27,6 @@ const ids = [...metaSrc.matchAll(/id: '([a-z0-9-]+\/[a-z0-9-]+)'/g)].map((m) => 
 
 const port = 4180
 const base = `http://localhost:${port}`
-const preview = spawn('pnpm', ['exec', 'vite', 'preview', '--port', String(port), '--strictPort'], {
-  stdio: ['ignore', 'pipe', 'pipe'],
-})
-let serverOut = ''
-preview.stdout.on('data', (d) => (serverOut += d))
-preview.stderr.on('data', (d) => (serverOut += d))
 
 const problems = []
 const tolerated = new Set()
@@ -40,18 +35,6 @@ const fail = (msg) => {
   console.error(`FAIL ${msg}`)
 }
 const ok = (msg) => console.log(`ok   ${msg}`)
-
-async function waitReady() {
-  for (let i = 0; i < 75; i++) {
-    try {
-      if ((await fetch(base + '/')).ok) return
-    } catch {
-      /* not up yet */
-    }
-    await new Promise((r) => setTimeout(r, 200))
-  }
-  throw new Error(`preview did not start:\n${serverOut}`)
-}
 
 // Expected by design: HTML Live Preview renders user HTML in a sandbox=""
 // iframe while "Run scripts" is off, so Chrome reports the blocked <script>
@@ -209,6 +192,10 @@ async function interactions(page, log) {
   if (log.length) fail(`interactions: ${log.join(' | ')}`)
 }
 
+// One difference of each kind: changed, removed, added, type.
+const DIFF_A = '{"name":"Ada","age":36,"tags":["admin","dev"],"address":{"city":"London","zip":"N1 9GU"},"active":true}'
+const DIFF_B = '{"name":"Ada Lovelace","age":36,"tags":["admin","dev","ops"],"address":{"city":"London"},"active":"yes"}'
+
 async function screenshots(browser) {
   const shots = []
   for (const scheme of ['light', 'dark']) {
@@ -220,9 +207,18 @@ async function screenshots(browser) {
       ['crypto-aes', '/crypto/aes'],
       ['html-preview', '/html/preview'],
       ['base64-text', '/base64/text'],
+      ['json-tree', '/json/tree'],
+      ['json-diff', '/json/diff'],
     ]) {
       await page.goto(base + path, { waitUntil: 'networkidle' })
       if (name === 'json-format') await page.getByRole('button', { name: /sample/i }).first().click().catch(() => {})
+      if (name === 'json-tree') await page.getByRole('button', { name: 'Expand all' }).click()
+      if (name === 'json-diff') {
+        await page.getByLabel('Original (A)', { exact: true }).fill(DIFF_A)
+        await page.getByLabel('Modified (B)', { exact: true }).fill(DIFF_B)
+        const rows = await page.locator('.diff-table tbody tr').count()
+        if (rows !== 4) fail(`json diff: expected 4 difference rows, got ${rows}`)
+      }
       const file = `${SHOTS}/${name}-${scheme}.png`
       await page.screenshot({ path: file, fullPage: true })
       shots.push(file)
@@ -277,9 +273,12 @@ async function screenshots(browser) {
   return shots
 }
 
-let browser
+if (process.env.CHROME_PATH && !existsSync(CHROME)) throw new Error(`CHROME_PATH does not exist: ${CHROME}`)
+console.log(`chrome: ${CHROME}`)
+
+let browser, preview
 try {
-  await waitReady()
+  preview = await startPreview(port)
   browser = await chromium.launch({ executablePath: CHROME, headless: true })
   const ctx = await newContext(browser)
   const page = await ctx.newPage()
@@ -303,8 +302,11 @@ try {
 } catch (e) {
   fail(e.stack ?? String(e))
 } finally {
-  await browser?.close()
-  preview.kill()
+  await browser?.close().catch((e) => fail(`browser close: ${e.message}`))
+  await preview
+    ?.close()
+    .then(() => ok(`preview server closed, port ${port} free`))
+    .catch((e) => fail(e.message))
 }
 
 // The inert preview of the sample (which contains a <script>) must have been blocked.

@@ -1,9 +1,9 @@
 // Smoke test for the production build: checks the static files GitHub Pages
-// will serve, then starts `vite preview` and fetches the home page, a deep
-// link and a static asset.
-import { spawn } from 'node:child_process'
+// will serve, then starts Vite's preview server and fetches the home page, a
+// deep link and a static asset.
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { startPreview } from './preview-server.mjs'
 
 const dist = 'dist'
 const fail = (msg) => {
@@ -27,30 +27,10 @@ const index = readFileSync(join(dist, 'index.html'), 'utf8')
 if (!index.includes('Content-Security-Policy')) fail('CSP meta missing from index.html')
 if (/<script(?![^>]*\bsrc=)[^>]*>\s*\S/.test(index)) fail('inline script found in index.html (blocked by CSP)')
 
-const port = 4179
-const preview = spawn('pnpm', ['exec', 'vite', 'preview', '--port', String(port), '--strictPort'], {
-  stdio: ['ignore', 'pipe', 'pipe'],
-})
-let out = ''
-preview.stdout.on('data', (d) => (out += d))
-preview.stderr.on('data', (d) => (out += d))
-
-const base = `http://localhost:${port}`
-async function waitReady() {
-  for (let i = 0; i < 50; i++) {
-    try {
-      const r = await fetch(base + '/')
-      if (r.ok) return
-    } catch {
-      /* not up yet */
-    }
-    await new Promise((r) => setTimeout(r, 200))
-  }
-  throw new Error(`preview did not start:\n${out}`)
-}
-
+let preview
 try {
-  await waitReady()
+  preview = await startPreview(4179)
+  const base = preview.base
   const checks = [
     ['/', 'id="root"'],
     ['/json/format', 'JSON Formatter'],
@@ -74,6 +54,9 @@ try {
 } catch (e) {
   fail(e.message)
 } finally {
-  preview.kill()
+  await preview
+    ?.close()
+    .then(() => console.log('ok  preview server closed, port 4179 free'))
+    .catch((e) => fail(e.message))
 }
 if (!process.exitCode) console.log(`smoke: OK (${ids.length} tool routes)`)
