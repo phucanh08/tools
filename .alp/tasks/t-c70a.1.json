@@ -1,0 +1,121 @@
+{
+  "description": "Scaffold app tĩnh, client-side only, các nhóm tool Base64/JSON/HTML/Crypto, public/CNAME = tools.anhlp.com, GitHub Actions workflow deploy Pages. Build + test pass local. Giao diện phong cách giống notion.com (chỉ lấy cảm hứng, không copy asset). User yêu cầu lead chủ động dùng cả Codex cho peer.",
+  "type": "feature",
+  "priority": 1,
+  "labels": [],
+  "paths": [],
+  "parent": "t-c70a",
+  "blockedBy": [],
+  "discoveredFrom": null,
+  "related": [],
+  "gates": [],
+  "assignee": null,
+  "handoff": {
+    "outcome": "complete",
+    "summary": "t-c70a.1 rework round 2 is done and ready for main's review. (1) A Codex peer (codex:gpt-6-astra, high, workspace-write, assignment alp-child-8382fcd7) did the Notion-inspired restyle. Light theme is #fff with a #f7f7f5 sidebar and #37352f text; dark is #191919 with a #202020 sidebar. It uses system fonts only (no web fonts), a 248px workspace sidebar grouped by category with emoji icons, a breadcrumb topbar, page-style headers (icon, category, ~40px title, description), a home page with search and categorized cards, a drawer at ≤860px with a backdrop, and Escape and '/' key handling. No Notion assets or copy were used. I reviewed the peer's diff myself: ACCEPT, after a small a11y fix (the breadcrumb is now a <nav> with aria-current). (2) I wrote scripts/browser-check.mjs (`pnpm browser`). It drives the system Chrome through playwright-core against `vite preview` on the production build and covers home, all 27 routes and a 404. It checks console errors, page errors, failed requests, HTTP ≥400, CSP violations in every frame (via securitypolicyviolation) and horizontal overflow. It also runs the key interactions and saves 13 screenshots. (3) I bumped the deploy.yml actions to their current majors. (4) I wrote README.md. (5) An independent Fable reviewer returned pass_with_findings with 6 low findings. I fixed 4 of them, the full suite is green again, and no preview server was left listening on port 4179 or 4180.",
+    "candidate": [
+      "src/styles.css — full Notion-inspired rewrite (Codex peer); all existing component/tool class selectors kept",
+      "src/App.tsx — sidebar brand, breadcrumb nav, icons, drawer backdrop, Escape/'/' handling with focus restore (Codex peer); lead added: breadcrumb <nav aria-label=Breadcrumb> + aria-current, DRAWER_QUERY constant, '/' opens the drawer only on mobile, first Escape in search clears without closing the drawer (stopPropagation)",
+      "src/tools/meta.ts — `icon` field on Category and ToolMeta, filled for 5 categories and 27 tools; ids/routes unchanged (Codex peer)",
+      "src/app.test.ts — new test that every tool and category has an icon (Codex peer; 103 → 104 tests)",
+      "public/favicon.svg — original monochrome code-bracket mark (Codex peer)",
+      "scripts/browser-check.mjs — NEW, lead-authored headless Chrome check",
+      "package.json — playwright-core ^1.64.0 devDependency and a `browser` script (lead); pnpm-lock.yaml updated by pnpm add",
+      ".github/workflows/deploy.yml — checkout@v7, pnpm/action-setup@v6, setup-node@v7, configure-pages@v6, upload-pages-artifact@v5, deploy-pages@v5 (lead)",
+      ".gitignore — added .artifacts (lead)",
+      "README.md — NEW (lead): what it is, tools, local dev, verification commands, Pages deploy setup, Cloudflare DNS (CNAME tools → phucanh08.github.io, DNS-only), security notes",
+      "No git commits; the tree is still all untracked, so there are no base or candidate SHAs"
+    ],
+    "scope": [
+      "Remaining work items 1–5 of the brief, all addressed",
+      "Did not touch src/lib/** crypto logic, vite.config.ts CSP, public/sandbox.*, public/theme-init.js, .alp/ or ALP.md"
+    ],
+    "verification": [
+      "Final run, after all fixes, in this order: `pnpm typecheck` exit 0; `pnpm lint` exit 0; `pnpm vitest run` → 'Test Files 7 passed (7) / Tests 104 passed (104)'; `pnpm build` → '✓ built' (177 modules); `pnpm smoke` → 'smoke: OK (27 tool routes)'; `pnpm browser` → 'browser-check: OK (27 tool routes + home + 404, 0 console/CSP errors)'",
+      "Browser pass (Chrome 154.0.8037.98, headless, playwright-core 1.64.0): all 27 tool routes, home and /no/such-tool returned 200. Each showed the expected h1, the lazy tool chunk mounted, and none had an error boundary, console error or warning, pageerror, failed request, CSP violation or horizontal overflow",
+      "Interactions verified in the browser: Base64 encode of 'héllo wörld 👋 <tools>' → aMOpbGxvIHfDtnJsZCDwn5GLIDx0b29scz4= (matches Node Buffer); the 'Copy Base64' button puts the output on the clipboard and shows 'Copied ✓'; JSON formats to the expected 2-space output, and invalid JSON shows a line/column error; HTML preview is an inert sandbox=\"\" iframe by default, and with 'Run scripts' on the sandbox.html handshake renders the HTML, a click runs the script, and the frame cannot reach parent.document; AES-GCM password encrypt then decrypt round-trips (PBKDF2 600000); key pair generation produces public and private Ed25519 PEMs; sidebar client-side navigation works; on mobile (390px) the drawer opens with aria-expanded=true, first Escape clears the filter, second Escape closes the drawer, the drawer closes after navigation, and there is no overflow; the dark theme toggle persists across reload (body bg rgb(25,25,25))",
+      "Found and handled in the browser pass: one console error, \"Blocked script execution in 'about:srcdoc'…\", on /html/preview. This is expected by design: the sample HTML's <script> is blocked in the inert sandbox=\"\" frame when 'Run scripts' is off. The check tolerates only that exact anchored message, and also requires the inert frame to have sandbox=\"\" and the block to actually occur. No other console or CSP errors were found, so no app fixes were needed",
+      "Screenshots in .artifacts/screenshots/ (git-ignored): {home,json-format,crypto-aes,html-preview,base64-text}-{light,dark}.png, mobile-home-light.png, mobile-drawer-light.png, mobile-json-format-light.png. I visually inspected home-light, json-format-dark, crypto-aes-light, mobile-drawer-light and mobile-json-format-light",
+      "Action versions were checked online on 2026-10-09 with `gh api repos/<r>/releases/latest` and `git ls-remote --tags` (major tags exist): checkout v7.0.1, pnpm/action-setup v6.1.0, setup-node v7.1.0, configure-pages v6.0.0, upload-pages-artifact v5.0.0, deploy-pages v5.0.1. Release notes show nothing that breaks this workflow: setup-node v6+ only limits automatic caching to npm, and the explicit `cache: pnpm` still works; upload-pages-artifact v4+ excludes dotfiles, and dist has none",
+      "Independent review: reviewer on claude:fable, read-only (alp-child-6ddad124), returned pass_with_findings, with all 7 criteria pass except 5b. 5b (action currency) was not_checked because the reviewer had no network; lead's own check above covers it. The reviewer could not run `pnpm browser` because its sandbox blocks binding ports",
+      "Lead review of the Codex peer diff: ACCEPT"
+    ],
+    "risks": [
+      "Two reviewer findings are not fixed: (a) the diff-table and tree-branch classes have no CSS rules, but they still get .table/list styling and look fine; (b) preview.kill() signals the pnpm wrapper rather than vite. (b) was not observed: no listener remained on 4179 or 4180 after the runs",
+      "`pnpm browser` runs locally only and is not part of CI. It needs Chrome (CHROME_PATH override)",
+      "Emoji icons render differently on each OS",
+      "Full-page screenshots cut the fixed sidebar at viewport height. This is a capture artifact, not a layout bug",
+      "The deploy workflow has not run on GitHub yet (no repo or push, as instructed)"
+    ],
+    "discovered": [
+      "Optional: pnpm/action-setup's README now points to the successor action pnpm/setup, which needs pnpm v11+. The project pins pnpm@10.33.3, so I kept pnpm/action-setup@v6. Moving to pnpm 11 + pnpm/setup is a possible follow-up",
+      "Optional: run browser-check in CI (ubuntu runners have Chrome) after the first deploy",
+      "Pending outside this task: create the GitHub repo and push, set Pages source to GitHub Actions and the custom domain, and add the Cloudflare CNAME tools → phucanh08.github.io (DNS-only)"
+    ],
+    "ownership": "The Codex peer handed writer ownership back to me and finished. The reviewer was read-only and has finished. No peers are running. My board claim p-352b4812 ends with this session, and all files are released to main. No git commits were made.",
+    "agent": "lead",
+    "at": "2026-10-09T15:45:44.891Z"
+  },
+  "verified": null,
+  "closed": {
+    "at": "2026-10-09T15:48:22.809Z",
+    "by": "main",
+    "reason": "done",
+    "summary": "27 tools (Base64/JSON/HTML/Crypto/Misc), Vite+React+TS, Notion-style UI (Codex peer), CNAME tools.anhlp.com, deploy.yml with current action majors, README. Main re-ran: typecheck/lint OK, vitest 104/104, build OK, smoke OK (27 routes), browser-check OK (27 routes+home+404, 0 console/CSP errors); screenshots inspected. Reviews: Codex crypto review (5 findings fixed), Fable reviewer pass_with_findings (4/6 low fixed, 2 cosmetic left)."
+  },
+  "log": [
+    {
+      "at": "2026-10-09T14:49:17.067Z",
+      "by": "main",
+      "event": "created"
+    },
+    {
+      "at": "2026-10-09T14:49:54.766Z",
+      "by": "main",
+      "event": "started",
+      "to": "lead",
+      "assignment": "alp-child-06ac7907-6615-4856-aadc-715d7d77d6db"
+    },
+    {
+      "at": "2026-10-09T15:05:10.786Z",
+      "by": "main",
+      "event": "updated",
+      "fields": [
+        "description"
+      ]
+    },
+    {
+      "at": "2026-10-09T15:23:26.825Z",
+      "by": "lead",
+      "event": "submitted",
+      "outcome": "partial"
+    },
+    {
+      "at": "2026-10-09T15:24:15.248Z",
+      "by": "main",
+      "event": "reworked",
+      "to": "lead",
+      "assignment": "alp-child-b0a11d05-df67-4eef-a521-c38312d13b45"
+    },
+    {
+      "at": "2026-10-09T15:45:44.891Z",
+      "by": "lead",
+      "event": "submitted",
+      "outcome": "complete"
+    },
+    {
+      "at": "2026-10-09T15:48:22.809Z",
+      "by": "main",
+      "event": "closed",
+      "reason": "done",
+      "summary": "27 tools (Base64/JSON/HTML/Crypto/Misc), Vite+React+TS, Notion-style UI (Codex peer), CNAME tools.anhlp.com, deploy.yml with current action majors, README. Main re-ran: typecheck/lint OK, vitest 104/104, build OK, smoke OK (27 routes), browser-check OK (27 routes+home+404, 0 console/CSP errors); screenshots inspected. Reviews: Codex crypto review (5 findings fixed), Fable reviewer pass_with_findings (4/6 low fixed, 2 cosmetic left)."
+    }
+  ],
+  "rev": 7,
+  "id": "t-c70a.1",
+  "title": "Xây dựng app tools (Vite + React + TS) + workflow deploy GitHub Pages",
+  "status": "closed",
+  "createdBy": "main",
+  "createdAt": "2026-10-09T14:49:17.067Z",
+  "updatedAt": "2026-10-09T15:48:22.809Z"
+}

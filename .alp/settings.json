@@ -1,0 +1,6 @@
+{
+  "defaultAgent": "main",
+  "workflow": {
+    "mode": "pho"
+  }
+}

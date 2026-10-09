@@ -1,0 +1,32 @@
+{
+  "description": "Tuỳ chọn, ưu tiên thấp. (1) Thêm `pnpm browser` (headless Chrome) vào CI sau lần deploy đầu. (2) pnpm/action-setup hiện chỉ sang action kế nhiệm pnpm/setup, cần pnpm 11+; dự án đang pin pnpm 10.33.3. (3) Hai finding nhỏ còn lại từ reviewer: class diff-table và tree-branch chưa có CSS riêng; preview.kill() trong browser-check gửi signal cho wrapper pnpm thay vì vite.",
+  "type": "chore",
+  "priority": 4,
+  "labels": [],
+  "paths": [],
+  "parent": "t-c70a",
+  "blockedBy": [
+    "t-c70a.2"
+  ],
+  "discoveredFrom": "t-c70a.1",
+  "related": [],
+  "gates": [],
+  "assignee": null,
+  "handoff": null,
+  "verified": null,
+  "closed": null,
+  "log": [
+    {
+      "at": "2026-10-09T15:48:26.436Z",
+      "by": "main",
+      "event": "created"
+    }
+  ],
+  "rev": 1,
+  "id": "t-c70a.4",
+  "title": "Chạy browser-check trong CI và cân nhắc lên pnpm 11 + pnpm/setup",
+  "status": "open",
+  "createdBy": "main",
+  "createdAt": "2026-10-09T15:48:26.436Z",
+  "updatedAt": "2026-10-09T15:48:26.436Z"
+}

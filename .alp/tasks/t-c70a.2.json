@@ -1,0 +1,74 @@
+{
+  "description": "Cần anh xác nhận tên repo/visibility trước khi tạo repo và push (account phucanh08).",
+  "type": "chore",
+  "priority": 2,
+  "labels": [],
+  "paths": [],
+  "parent": "t-c70a",
+  "blockedBy": [
+    "t-c70a.1"
+  ],
+  "discoveredFrom": null,
+  "related": [],
+  "gates": [
+    {
+      "id": "g1",
+      "kind": "human",
+      "note": "Anh xác nhận tên repo (mặc định phucanh08/tools, public) và cho phép tạo repo + push + bật Pages.",
+      "at": "2026-10-09T14:49:23.791Z",
+      "by": "main",
+      "resolved": {
+        "at": "2026-10-09T15:00:06.657Z",
+        "by": "user"
+      }
+    }
+  ],
+  "assignee": {
+    "agent": "main",
+    "session": "f5f04e1f-1bc3-4b7e-b774-1b80012168d2",
+    "since": "2026-10-09T15:51:29.678Z"
+  },
+  "handoff": null,
+  "verified": null,
+  "closed": null,
+  "log": [
+    {
+      "at": "2026-10-09T14:49:18.833Z",
+      "by": "main",
+      "event": "created"
+    },
+    {
+      "at": "2026-10-09T14:49:23.053Z",
+      "by": "main",
+      "event": "linked",
+      "changes": [
+        "+blockedBy t-c70a.1"
+      ]
+    },
+    {
+      "at": "2026-10-09T14:49:23.791Z",
+      "by": "main",
+      "event": "gated",
+      "gate": "g1 human: Anh xác nhận tên repo (mặc định phucanh08/tools, public) và cho phép tạo repo + push + bật Pages."
+    },
+    {
+      "at": "2026-10-09T15:00:06.660Z",
+      "by": "user",
+      "event": "gate cleared",
+      "gate": "g1 human: Anh xác nhận tên repo (mặc định phucanh08/tools, public) và cho phép tạo repo + push + bật Pages."
+    },
+    {
+      "at": "2026-10-09T15:51:29.678Z",
+      "by": "main",
+      "event": "started",
+      "to": "main"
+    }
+  ],
+  "rev": 5,
+  "id": "t-c70a.2",
+  "title": "Tạo repo GitHub, push, bật Pages + custom domain",
+  "status": "in_progress",
+  "createdBy": "main",
+  "createdAt": "2026-10-09T14:49:18.833Z",
+  "updatedAt": "2026-10-09T15:51:29.678Z"
+}

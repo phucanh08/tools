@@ -1,0 +1,30 @@
+{
+  "description": "Site tĩnh gồm các nhóm tool: Base64, JSON, HTML, mã hoá (tạo key, mã hoá/giải mã, hash...). Deploy GitHub Pages, custom domain tools.anhlp.com (DNS trên Cloudflare, zone anhlp.com).",
+  "type": "epic",
+  "priority": 1,
+  "labels": [],
+  "paths": [],
+  "parent": null,
+  "blockedBy": [],
+  "discoveredFrom": null,
+  "related": [],
+  "gates": [],
+  "assignee": null,
+  "handoff": null,
+  "verified": null,
+  "closed": null,
+  "log": [
+    {
+      "at": "2026-10-09T14:49:14.285Z",
+      "by": "main",
+      "event": "created"
+    }
+  ],
+  "rev": 1,
+  "id": "t-c70a",
+  "title": "Web developer tools trên GitHub Pages tại tools.anhlp.com",
+  "status": "open",
+  "createdBy": "main",
+  "createdAt": "2026-10-09T14:49:14.285Z",
+  "updatedAt": "2026-10-09T14:49:14.285Z"
+}

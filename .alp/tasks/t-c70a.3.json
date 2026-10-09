@@ -1,0 +1,54 @@
+{
+  "description": "CNAME tools → phucanh08.github.io, Proxy status: DNS only (để GitHub cấp cert Let's Encrypt). Sau khi cert cấp xong có thể bật Enforce HTTPS trên GitHub. Máy chưa có credential Cloudflare: anh tự tạo hoặc cấp API token (Zone.DNS:Edit).",
+  "type": "chore",
+  "priority": 2,
+  "labels": [],
+  "paths": [],
+  "parent": "t-c70a",
+  "blockedBy": [],
+  "discoveredFrom": null,
+  "related": [],
+  "gates": [
+    {
+      "id": "g1",
+      "kind": "human",
+      "note": "Anh tạo CNAME trên Cloudflare (hoặc cấp API token) rồi approve.",
+      "at": "2026-10-09T14:49:24.887Z",
+      "by": "main",
+      "resolved": {
+        "at": "2026-10-09T15:00:07.382Z",
+        "by": "user"
+      }
+    }
+  ],
+  "assignee": null,
+  "handoff": null,
+  "verified": null,
+  "closed": null,
+  "log": [
+    {
+      "at": "2026-10-09T14:49:20.799Z",
+      "by": "main",
+      "event": "created"
+    },
+    {
+      "at": "2026-10-09T14:49:24.887Z",
+      "by": "main",
+      "event": "gated",
+      "gate": "g1 human: Anh tạo CNAME trên Cloudflare (hoặc cấp API token) rồi approve."
+    },
+    {
+      "at": "2026-10-09T15:00:07.382Z",
+      "by": "user",
+      "event": "gate cleared",
+      "gate": "g1 human: Anh tạo CNAME trên Cloudflare (hoặc cấp API token) rồi approve."
+    }
+  ],
+  "rev": 3,
+  "id": "t-c70a.3",
+  "title": "Cloudflare DNS: CNAME tools.anhlp.com → phucanh08.github.io",
+  "status": "open",
+  "createdBy": "main",
+  "createdAt": "2026-10-09T14:49:20.799Z",
+  "updatedAt": "2026-10-09T15:00:07.382Z"
+}
