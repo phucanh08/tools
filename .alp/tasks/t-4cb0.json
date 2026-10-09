@@ -10,21 +10,71 @@
   "related": [],
   "gates": [],
   "assignee": null,
-  "handoff": null,
+  "handoff": {
+    "outcome": "complete",
+    "summary": "t-4cb0 -> review. No code changed, no commit. (1) Sidebar cut-off is a SCREENSHOT ARTIFACT only, not a layout bug. (2) Combined pnpm/setup + pnpm 12 migration: still NOT YET.\n\n(1) Evidence (headless system Chrome via playwright-core on the built dist). .sidebar is position:fixed; inset:0 auto 0 0 (src/styles.css:170), so it is always viewport-tall. browser-check fullPage shots use a 1280x860 viewport and Playwright keeps fixed elements at viewport height, so the sidebar stops at ~860px in those images. Real scrolling at bottom: desktop 1280x800 home (docH 2255, scrollY 1455): sidebar top 0, height 800, its list scrolls (scrollHeight 1177 -> scrollTop 377), last link \"Unix Timestamp\" visible (bottom 730 <= 800), Sign/Verify visible too. Mobile 390x844 with menu open, home (docH 3181, scrollY 2337): sidebar top 52 (below topbar), height 792, Unix Timestamp visible (bottom 775 <= 844). /json/diff pages were short (docH 804 / 1159) but sidebar metrics were identical. Viewport (non-fullPage) screenshots, gitignored: .artifacts/screenshots/sidebar-bottom-{desktop,mobile}-{home,json-diff}.png. I viewed desktop-home and mobile-home: sidebar full height, last items reachable. I did not alter browser-check; making fullPage shots non-misleading would need hacks, so it is not trivial.\n\n(2) The peer on codex:gpt-6-astra (read-only) did the research; I did the sidebar check myself. As of 2026-10-09: pnpm 12 is stable (12.0.0 on 2026-08-26; 12.11.1 on 2026-10-09 per GitHub/pnpm.io; the npm /latest endpoint showed 12.10.1, a freshness conflict left unresolved). pnpm/setup releases: v1.0.0 Jun 15, v2.0.0 Aug 4 (2.0.1/2.0.2 Aug 7/9, 2.1.0 Aug 28), v3.0.0 Sep 20. That is 2 major transitions in ~116 days, v3 is only 19 days old, and there is no multi-month stable stretch. Open reliability issues on pnpm/setup: #67 post-step prune empties the store (v3 + pnpm 12.8.1), #69 failed store restore hangs until job timeout, #73 devEngines warning breaks the cache path, #64 no retry on registry failures, #58 and #45 version-pin mismatches, #57 stdout noise breaks version detection, #55 post step saves a rejected verification log. Many do not apply to this simple single-root repo, but #67 and #69 hit generic paths. pnpm/action-setup is not archived or deprecated, and v6.1.0 (2026-09-05) explicitly supports pnpm 12. Caveat: the pnpm.io CI docs now show pnpm/setup, so action-setup is no longer the only documented path. pnpm 12 breaking changes (strict workspace config, git URL canonicalization, hardlink import, engineStrict) don't apply here; since the repo skips 11, v11 changes also apply (build-script approval, 1-day release age, store format) and need a clean trial. setup v3 requires pnpm >=11, so swapping only the action while keeping packageManager 10.33.3 would fail.\n\nRecommendation: keep pnpm 10.33.3 + pnpm/action-setup@v6. A pnpm 12 bump alone is possible earlier with action-setup v6.1.0, after a non-deploy trial (clean frozen install, unchanged lockfile, all checks, second warm-cache run). Revisit pnpm/setup after #67/#69/#45/#58 are fixed or documented as non-applicable, plus 2-3 months with no new major (earliest ~Nov 20 - Dec 20 if v3 stays current).",
+    "candidate": [
+      "No code changed; no commit. Only gitignored artifacts: .artifacts/screenshots/sidebar-bottom-{desktop,mobile}-{home,json-diff}.png"
+    ],
+    "scope": [
+      "Read: src/styles.css, scripts/browser-check.mjs, scripts/preview-server.mjs",
+      "Written: .artifacts/screenshots/sidebar-bottom-*.png (gitignored); scratch script /tmp/sbcheck/run.mjs"
+    ],
+    "verification": [
+      "Headless Chrome (playwright-core, system Chrome) at 1280x800 and 390x844, scrolled to document bottom: sidebar position fixed, full viewport height, last nav link (Unix Timestamp) inside the sidebar bounds after scrolling its own list",
+      "Viewed two screenshots (desktop-home, mobile-home)",
+      "git status: only .alp/tasks/t-4cb0.json modified (not by me); no src changes so typecheck/lint/test/build were not rerun"
+    ],
+    "risks": [
+      "pnpm release-freshness conflict (npm latest 12.10.1 vs 12.11.1 on GitHub/pnpm.io) was not resolved",
+      "pnpm/setup issue reports are upstream user reports, not locally reproduced",
+      "pnpm 12 / setup compatibility was not trialled in CI; the 'not yet' call rests on release age and open issues",
+      "fullPage screenshots in browser-check will keep showing the truncated sidebar (cosmetic)"
+    ],
+    "discovered": [],
+    "ownership": "No writer ownership held; board claim p-07981b6e covers .artifacts/screenshots and src/styles.css (released when this session ends). Peer assignment alp-child-ab886f7c finished.",
+    "agent": "lead",
+    "at": "2026-10-09T16:36:34.448Z"
+  },
   "verified": null,
-  "closed": null,
+  "closed": {
+    "at": "2026-10-09T16:36:41.840Z",
+    "by": "main",
+    "reason": "done",
+    "summary": "(1) Sidebar cut-off is a fullPage-screenshot artifact only: .sidebar is position:fixed (styles.css:171); real scroll-to-bottom at 1280x800 and 390x844 keeps it full-height and its list reaches Unix Timestamp. Main inspected sidebar-bottom-desktop-home.png. No code change. (2) Codex peer (gpt-6-astra) re-checked: pnpm 12 stable but pnpm/setup v3 only 19 days old with open issues #67/#69; keep pnpm 10.33.3 + action-setup@v6. Revisit tracked separately."
+  },
   "log": [
     {
       "at": "2026-10-09T16:17:15.846Z",
       "by": "main",
       "event": "created"
+    },
+    {
+      "at": "2026-10-09T16:32:11.648Z",
+      "by": "main",
+      "event": "started",
+      "to": "lead",
+      "assignment": "alp-child-67b7ceee-4740-462b-b0a8-392e0f2fb6ec"
+    },
+    {
+      "at": "2026-10-09T16:36:34.448Z",
+      "by": "lead",
+      "event": "submitted",
+      "outcome": "complete"
+    },
+    {
+      "at": "2026-10-09T16:36:41.840Z",
+      "by": "main",
+      "event": "closed",
+      "reason": "done",
+      "summary": "(1) Sidebar cut-off is a fullPage-screenshot artifact only: .sidebar is position:fixed (styles.css:171); real scroll-to-bottom at 1280x800 and 390x844 keeps it full-height and its list reaches Unix Timestamp. Main inspected sidebar-bottom-desktop-home.png. No code change. (2) Codex peer (gpt-6-astra) re-checked: pnpm 12 stable but pnpm/setup v3 only 19 days old with open issues #67/#69; keep pnpm 10.33.3 + action-setup@v6. Revisit tracked separately."
     }
   ],
-  "rev": 1,
+  "rev": 4,
   "id": "t-4cb0",
   "title": "Kiểm tra sidebar bị cắt ở ảnh full-page; cân nhắc pnpm 12 + pnpm/setup khi ổn định",
-  "status": "open",
+  "status": "closed",
   "createdBy": "main",
   "createdAt": "2026-10-09T16:17:15.846Z",
-  "updatedAt": "2026-10-09T16:17:15.846Z"
+  "updatedAt": "2026-10-09T16:36:41.840Z"
 }

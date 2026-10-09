@@ -1,0 +1,45 @@
+{
+  "description": "Kết luận ngày 2026-10-09: giữ pnpm 10.33.3 + pnpm/action-setup@v6. Xem lại khi các issue #67, #69, #45, #58 của pnpm/setup đã được sửa (hoặc xác nhận không ảnh hưởng tới repo này), và pnpm/setup đã 2–3 tháng không ra major mới. Có thể nâng riêng lên pnpm 12 với action-setup v6.1.0 sau khi chạy thử ngoài nhánh deploy: frozen install sạch, lockfile không đổi, mọi check pass, chạy thêm một lần với cache có sẵn.",
+  "type": "chore",
+  "priority": 4,
+  "labels": [],
+  "paths": [],
+  "parent": null,
+  "blockedBy": [],
+  "discoveredFrom": "t-4cb0",
+  "related": [],
+  "gates": [
+    {
+      "id": "g1",
+      "kind": "timer",
+      "note": "pnpm/setup v3 cần thời gian ổn định; xem lại sớm nhất từ tháng 12/2026.",
+      "until": "2026-12-01T00:00:00.000Z",
+      "at": "2026-10-09T16:36:47.974Z",
+      "by": "main"
+    }
+  ],
+  "assignee": null,
+  "handoff": null,
+  "verified": null,
+  "closed": null,
+  "log": [
+    {
+      "at": "2026-10-09T16:36:44.985Z",
+      "by": "main",
+      "event": "created"
+    },
+    {
+      "at": "2026-10-09T16:36:47.974Z",
+      "by": "main",
+      "event": "gated",
+      "gate": "g1 timer: until 2026-12-01T00:00:00.000Z"
+    }
+  ],
+  "rev": 2,
+  "id": "t-8640",
+  "title": "Xem lại việc nâng pnpm 12 + pnpm/setup",
+  "status": "open",
+  "createdBy": "main",
+  "createdAt": "2026-10-09T16:36:44.985Z",
+  "updatedAt": "2026-10-09T16:36:47.974Z"
+}
