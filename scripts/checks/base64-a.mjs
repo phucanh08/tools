@@ -1,4 +1,5 @@
-// Browser-check hooks for the Base64 tools of group A (t-34ae.1).
+// Browser-check hooks for the Base64 tools of group A (t-34ae.1) and the
+// media-sniff behavior of Base64 File (t-9d12).
 // Imported by scripts/browser-check.mjs. Keep checks deterministic and offline.
 import { deflateSync } from 'node:zlib'
 
@@ -68,6 +69,24 @@ function makeWav() {
 const PNG = makePng(64)
 const PNG_B64 = PNG.toString('base64')
 const WAV_B64 = makeWav().toString('base64')
+// Base64 File fixtures (t-9d12). Before 6c32772 the tool had its own sniffer that
+// knew no text types (raw text/JSON/HTML downloaded as "file.bin") and previewed
+// every image/* type, so HEIC/TIFF/PSD rendered a broken <img>.
+const b64 = (s) => Buffer.from(s).toString('base64')
+const TIFF = Buffer.from([0x49, 0x49, 0x2a, 0x00, 0x08, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0, 0, 0, 0]) // "II*\0" little-endian header
+const HEIC = Buffer.concat([Buffer.from([0, 0, 0, 0x18]), Buffer.from('ftypheic\0\0\0\0mif1heic', 'latin1')]) // ISO BMFF ftyp box
+const PSD = Buffer.concat([Buffer.from('8BPS'), Buffer.from([0, 1, 0, 0, 0, 0, 0, 0, 0, 3])])
+/** [label, Base64 or data URL input, detected type, default file name, image preview expected] */
+const FILE_CASES = [
+  ['PNG (control)', PNG_B64, 'image/png', 'file.png', true],
+  ['plain text', b64('Hello, world!\nSecond line.\n'), 'text/plain', 'file.txt', false],
+  ['JSON', b64('{"name":"tools","ok":true,"n":[1,2,3]}'), 'application/json', 'file.json', false],
+  ['HTML', b64('<!DOCTYPE html><html><body><p>hi</p></body></html>'), 'text/html', 'file.html', false],
+  ['raw TIFF', TIFF.toString('base64'), 'image/tiff', 'file.tiff', false],
+  ['HEIC data URL', `data:image/heic;base64,${HEIC.toString('base64')}`, 'image/heic', 'file.heic', false],
+  ['TIFF data URL', `data:image/tiff;base64,${TIFF.toString('base64')}`, 'image/tiff', 'file.tiff', false],
+]
+
 const CORRUPT_SAMPLE = '"SGVsbG8s IFdv!cmxkIQ="'
 
 const fill = (page, label, value) => page.getByLabel(label, { exact: true }).fill(value)
@@ -178,4 +197,58 @@ export async function run({ page, base, fail, ok }) {
   const password = await page.getByTestId('basic-password').textContent()
   if (user !== 'user' || password !== 'pässword') fail(`basic auth decode: got ${JSON.stringify([user, password])}`)
   else ok('basic auth decode -> user / pässword')
+
+  // 9. Base64 File (t-9d12): the default file name follows the media-sniff type,
+  // and only types browsers render get an <img> preview. Each non-control case
+  // fails against the pre-6c32772 tool (file.bin, or an <img> for HEIC/TIFF).
+  await page.goto(base + '/base64/file', { waitUntil: 'networkidle' })
+  await page.getByRole('radio', { name: 'Base64 → File', exact: true }).click()
+  for (const [label, input, mime, name, preview] of FILE_CASES) {
+    await fill(page, 'Base64 or data URL', input)
+    const shown = await page
+      .waitForFunction((m) => document.querySelector('main dd.mono')?.textContent === m, mime, { timeout: 5000 })
+      .then(() => true, () => false)
+    if (!shown) {
+      fail(`file: ${label} -> detected "${await page.locator('main dd.mono').textContent().catch(() => '?')}", want ${mime}`)
+      continue
+    }
+    const button = (await page.locator('main button', { hasText: /^Download / }).textContent())?.trim()
+    const placeholder = await page.getByLabel('File name', { exact: true }).getAttribute('placeholder')
+    if (preview) await page.locator('main .image-preview img').waitFor({ timeout: 5000 }).catch(() => {})
+    const imgs = await page.locator('main .image-preview img').count()
+    const wrong = []
+    if (button !== `Download ${name}` || placeholder !== name) wrong.push(`"${button}" / placeholder "${placeholder}", want ${name}`)
+    if (imgs !== (preview ? 1 : 0)) wrong.push(`${imgs} preview <img>, want ${preview ? 1 : 0}`)
+    if (wrong.length) fail(`file: ${label} -> ${wrong.join('; ')}`)
+    else ok(`file: ${label} -> ${mime}, ${name}, ${preview ? 'image preview' : 'no preview'}`)
+  }
+  // The real download uses the same name.
+  await fill(page, 'Base64 or data URL', FILE_CASES[2][1])
+  const [download] = await Promise.all([
+    page.waitForEvent('download', { timeout: 5000 }),
+    page.locator('main button', { hasText: /^Download / }).click(),
+  ])
+  if (download.suggestedFilename() !== 'file.json') fail(`file: JSON download named "${download.suggestedFilename()}"`)
+  else ok('file: JSON download saved as file.json')
+  await download.cancel().catch(() => {})
+  // File → Base64: a HEIC/PSD upload declared as image/* gets no <img> preview.
+  await page.getByRole('radio', { name: 'File → Base64', exact: true }).click()
+  for (const [fileName, mimeType, buffer, preview] of [
+    ['photo.png', 'image/png', PNG, true],
+    ['photo.heic', 'image/heic', HEIC, false],
+    ['layers.psd', 'image/vnd.adobe.photoshop', PSD, false],
+  ]) {
+    await page.locator('main input[type="file"]').setInputFiles({ name: fileName, mimeType, buffer })
+    const loaded = await page
+      .waitForFunction((n) => [...document.querySelectorAll('main .kv dd')].some((d) => d.textContent === n), fileName, { timeout: 5000 })
+      .then(() => true, () => false)
+    if (!loaded) {
+      fail(`file: upload ${fileName} not shown`)
+      continue
+    }
+    if (preview) await page.locator('main .image-preview img').waitFor({ timeout: 5000 }).catch(() => {})
+    const imgs = await page.locator('main .image-preview img').count()
+    if (imgs !== (preview ? 1 : 0)) fail(`file: upload ${fileName} (${mimeType}) -> ${imgs} preview <img>, want ${preview ? 1 : 0}`)
+    else ok(`file: upload ${fileName} -> ${preview ? 'image preview' : 'no preview'}`)
+  }
 }
