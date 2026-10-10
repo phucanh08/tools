@@ -542,12 +542,22 @@ function guessUtf16Cjk(bytes: Uint8Array): Detection | null {
 }
 
 function looksLikeCjk(bytes: Uint8Array, charset: 'utf-16le' | 'utf-16be'): boolean {
+  const r = readCjkUnits(bytes, charset)
+  return r !== null && r.anchors >= 2 && r.cjk >= 4 && r.cjk >= r.text.length * 0.3
+}
+
+/**
+ * Decodes bytes as UTF-16 and counts CJK units (CJK_RANGES) and anchors (ASCII,
+ * CJK punctuation, fullwidth forms). Null if the bytes are not valid UTF-16 or
+ * contain a unit that is neither CJK nor printable ASCII/tab/LF/CR.
+ */
+function readCjkUnits(bytes: Uint8Array, charset: 'utf-16le' | 'utf-16be'): { text: string; cjk: number; anchors: number } | null {
   let text: string
   try {
     // stream: a surrogate pair cut at the end of a sample is held back, not an error.
     text = new TextDecoder(charset, { fatal: true, ignoreBOM: true }).decode(bytes, { stream: true })
   } catch {
-    return false
+    return null
   }
   let cjk = 0
   let anchors = 0
@@ -555,9 +565,41 @@ function looksLikeCjk(bytes: Uint8Array, charset: 'utf-16le' | 'utf-16be'): bool
     const c = text.charCodeAt(i)
     if (c < 0x80 || (c >= 0x3000 && c <= 0x301f) || c >= 0xff00) anchors++
     if (CJK_RANGES.some(([lo, hi]) => c >= lo && c <= hi)) cjk++
-    else if (!((c >= 0x20 && c <= 0x7e) || c === 0x09 || c === 0x0a || c === 0x0d)) return false
+    else if (!((c >= 0x20 && c <= 0x7e) || c === 0x09 || c === 0x0a || c === 0x0d)) return null
   }
-  return anchors >= 2 && cjk >= 4 && cjk >= text.length * 0.3
+  return { text, cjk, anchors }
+}
+
+export interface Utf16Alternative {
+  charset: 'utf-16le' | 'utf-16be'
+  /** The start of the input read in this byte order, for the user to judge. */
+  preview: string
+}
+
+/** Characters shown in a Utf16Alternative preview. */
+const PREVIEW_UNITS = 40
+
+/**
+ * UTF-16 byte orders (no BOM) in which the input reads as CJK text, offered as a
+ * hint when detection made a low-confidence legacy guess. Much looser than
+ * guessUtf16Cjk, which must not take legacy text for UTF-16 and so misses short
+ * CJK text: here every unit must be CJK or printable ASCII, with at least two
+ * CJK units making up half the text. Other text can pass too (pairs of Latin-1
+ * letters read as ideographs), so callers show the preview and let the user choose.
+ */
+export function utf16CjkAlternatives(bytes: Uint8Array, detection: Detection): Utf16Alternative[] {
+  if (detection.confidence !== 'low' || detection.charset === 'utf-16le' || detection.charset === 'utf-16be') return []
+  if (bytes.length < 4 || bytes.length % 2 !== 0) return []
+  const sample = bytes.subarray(0, DETECT_SAMPLE_BYTES)
+  const found: Utf16Alternative[] = []
+  for (const charset of ['utf-16le', 'utf-16be'] as const) {
+    const r = readCjkUnits(sample, charset)
+    if (r === null || r.cjk < 2 || r.cjk < r.text.length * 0.5) continue
+    // No surrogates can occur (readCjkUnits rejects them), so slicing is safe.
+    const head = r.text.slice(0, PREVIEW_UNITS).replace(/\s+/g, ' ').trim()
+    found.push({ charset, preview: r.text.length > PREVIEW_UNITS ? `${head}…` : head })
+  }
+  return found
 }
 
 const LATIN = /\p{Script=Latin}/u

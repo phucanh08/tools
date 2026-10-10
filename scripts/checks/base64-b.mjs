@@ -13,6 +13,9 @@ async function valueOf(page, label, timeout = 10_000) {
 }
 
 const SAMPLE_UU = 'begin 644 cat.txt\n#0V%T\n`\nend\n'
+// Short UTF-16LE Japanese without a BOM: detection guesses a legacy charset (t-076d).
+const UTF16_JA = '日本語のテキストです。'
+const UTF16_JA_B64 = Buffer.from(UTF16_JA, 'utf16le').toString('base64')
 
 /**
  * Screenshots taken in light and dark: [name, path, setup?]. setup(page) runs after
@@ -27,6 +30,15 @@ export const shots = [
       await page.getByLabel('Charset', { exact: true }).selectOption('windows-1258')
       await pane(page, 'Text').fill('Tiếng Việt — 日本')
       await valueOf(page, 'Base64')
+    },
+  ],
+  [
+    'base64-charset-utf16-hint',
+    '/base64/charset',
+    async (page) => {
+      await page.getByRole('radio', { name: 'Base64 → Text', exact: true }).click()
+      await pane(page, 'Base64').fill(UTF16_JA_B64)
+      await page.getByTestId('utf16-hint').waitFor()
     },
   ],
   [
@@ -87,6 +99,23 @@ export async function run({ page, base, fail, ok }) {
   const detected = (await page.locator('main .msg', { hasText: 'Detected' }).first().textContent()) ?? ''
   if (korean !== '한국어 텍스트입니다.' || !detected.includes('EUC-KR')) fail(`charset: auto-detect EUC-KR -> "${korean}" / "${detected}"`)
   else ok('charset: auto-detect -> EUC-KR, decoded Korean text')
+  if (await page.getByTestId('utf16-hint').count()) fail('charset: UTF-16 hint shown for EUC-KR text')
+  else ok('charset: no UTF-16 hint for EUC-KR text')
+  // Short UTF-16LE CJK without a BOM is left to a legacy guess; the hint previews
+  // the UTF-16 reading and switches "Decode as" with one click.
+  await pane(page, 'Base64').fill(UTF16_JA_B64)
+  const hint = page.getByTestId('utf16-hint')
+  await hint.waitFor({ timeout: 5000 }).catch(() => {})
+  const hintText = (await hint.textContent().catch(() => '')) ?? ''
+  if (!hintText.includes(`UTF-16LE it reads “${UTF16_JA}”`)) fail(`charset: no UTF-16LE hint for short UTF-16 Japanese ("${hintText}")`)
+  else {
+    await page.getByRole('button', { name: 'Decode as UTF-16LE', exact: true }).click()
+    const ja = await valueOf(page, 'Decoded text')
+    const decodeAs = await page.getByLabel('Decode as', { exact: true }).inputValue()
+    if (ja !== UTF16_JA || decodeAs !== 'utf-16le') fail(`charset: UTF-16 hint click -> "${ja}" / ${decodeAs}`)
+    else ok('charset: UTF-16LE hint for short Japanese, one click decodes it')
+  }
+  await page.getByLabel('Decode as', { exact: true }).selectOption('auto')
 
   // 6. Gzip round trip in the browser.
   await page.goto(base + '/base64/compress', { waitUntil: 'networkidle' })

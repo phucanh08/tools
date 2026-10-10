@@ -3,7 +3,17 @@ import { Checkbox, Segmented, Select, Toolbar } from '../../components/controls'
 import { ErrorMessage, Notice } from '../../components/Messages'
 import { TextPane } from '../../components/TextPane'
 import { attempt, useDebounced } from '../../hooks'
-import { CHARSETS, charsetInfo, codePointCount, decodeBytes, detectCharset, encodeText, type CharsetId, type Unmappable } from '../../lib/charset'
+import {
+  CHARSETS,
+  charsetInfo,
+  codePointCount,
+  decodeBytes,
+  detectCharset,
+  encodeText,
+  utf16CjkAlternatives,
+  type CharsetId,
+  type Unmappable,
+} from '../../lib/charset'
 import { base64ToBytes, bytesToBase64 } from '../../lib/encoding'
 
 type Mode = 'encode' | 'decode'
@@ -55,6 +65,8 @@ export default function Base64Charset() {
   )
   // Code points, not UTF-16 units; counted once per decode rather than on every render.
   const decodedChars = useMemo(() => (dec ? codePointCount(dec.text) : 0), [dec])
+  // Short UTF-16 CJK text without a BOM escapes detection; offer that reading.
+  const utf16Hints = useMemo(() => (dec?.detection ? utf16CjkAlternatives(dec.bytes, dec.detection) : []), [dec])
   const shownCharset = mode === 'encode' ? charset : dec?.used
   const latin1Note = shownCharset === 'iso-8859-1'
 
@@ -156,8 +168,23 @@ export default function Base64Charset() {
           {dec.bomRemoved && ' The byte order mark was removed.'}
           {dec.normalized &&
             ' Windows-1258 stores most Vietnamese letters as a base letter plus a combining tone mark; the text was normalized to precomposed form (NFC).'}
-          {dec.detection?.confidence === 'low' && !dec.detection.charset.startsWith('utf-16') && (
-            <> UTF-16 without a byte order mark is only detected for mostly Latin-script text.</>
+          {utf16Hints.length > 0 ? (
+            <span data-testid="utf16-hint">
+              {' '}
+              It may be UTF-16 without a byte order mark:
+              {utf16Hints.map((h) => (
+                <span key={h.charset}>
+                  {' '}
+                  as {charsetInfo(h.charset).label} it reads “{h.preview}”{' '}
+                  <button type="button" className="btn btn-small" onClick={() => setDecodeAs(h.charset)}>
+                    Decode as {charsetInfo(h.charset).label}
+                  </button>
+                </span>
+              ))}
+            </span>
+          ) : (
+            dec.detection?.confidence === 'low' &&
+            !dec.detection.charset.startsWith('utf-16') && <> UTF-16 without a byte order mark is only detected for mostly Latin-script text.</>
           )}
         </Notice>
       )}

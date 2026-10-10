@@ -1,5 +1,15 @@
 import { describe, expect, it, vi } from 'vitest'
-import { CHARSETS, DETECT_SAMPLE_BYTES, codePointCount, decodeBytes, detectCharset, encodeText, encoderTable, type CharsetId } from './charset'
+import {
+  CHARSETS,
+  DETECT_SAMPLE_BYTES,
+  codePointCount,
+  decodeBytes,
+  detectCharset,
+  encodeText,
+  encoderTable,
+  utf16CjkAlternatives,
+  type CharsetId,
+} from './charset'
 import { bytesToBase64 } from './encoding'
 
 const hex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, '0')).join(' ')
@@ -301,5 +311,44 @@ describe('charset detection', () => {
     expect(detectCharset(utf8).charset).toBe('utf-8')
     const broken = new Uint8Array([...utf8, 0xff])
     expect(detectCharset(broken).charset).not.toBe('utf-8')
+  })
+})
+
+describe('utf16CjkAlternatives (hint for short UTF-16 CJK without BOM)', () => {
+  const enc = (t: string, c: CharsetId) => encodeText(t, c).bytes
+  const hint = (b: Uint8Array) => utf16CjkAlternatives(b, detectCharset(b))
+
+  it.each([
+    ['日本語', 'utf-16le'],
+    ['東京都', 'utf-16be'],
+    ['中文测试', 'utf-16le'],
+    ['안녕하세요', 'utf-16be'],
+    ['日本語のテキストです。', 'utf-16le'],
+  ] as const)('offers %s in %s, which detection leaves to a legacy guess', (text, charset) => {
+    const b = enc(text, charset)
+    // The detector stays conservative: this is still a low-confidence legacy guess.
+    expect(detectCharset(b)).toMatchObject({ confidence: 'low' })
+    expect(detectCharset(b).charset.startsWith('utf-16')).toBe(false)
+    expect(hint(b)).toContainEqual({ charset, preview: text })
+  })
+
+  it('truncates long previews', () => {
+    const text = '漢字'.repeat(30)
+    const b = enc(text, 'utf-16le')
+    const found = utf16CjkAlternatives(b, { charset: 'shift_jis', reason: 'test', confidence: 'low' })
+    expect(found).toEqual([{ charset: 'utf-16le', preview: `${text.slice(0, 40)}…` }])
+  })
+
+  it.each([
+    ['valid UTF-8', enc('日本語', 'utf-8')],
+    ['UTF-16 with a BOM', encodeText('日本語', 'utf-16le', { bom: true }).bytes],
+    ['UTF-16LE Latin text (detected as UTF-16)', enc('Hello, world', 'utf-16le')],
+    ['odd length', bytes('e5 65 2c 67 9e')],
+    ['under 4 bytes', bytes('e5 65')],
+    ['Cyrillic', enc('Привет мир', 'windows-1251')],
+    ['Vietnamese', enc('Tiếng Việt có dấu', 'windows-1258')],
+    ['Korean EUC-KR', enc('한국어 텍스트입니다. 테스트 문장.', 'euc-kr')],
+  ])('offers nothing for %s', (_, b) => {
+    expect(hint(b)).toEqual([])
   })
 })
