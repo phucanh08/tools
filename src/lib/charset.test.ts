@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { CHARSETS, DETECT_SAMPLE_BYTES, decodeBytes, detectCharset, encodeText, encoderTable, type CharsetId } from './charset'
+import { CHARSETS, DETECT_SAMPLE_BYTES, codePointCount, decodeBytes, detectCharset, encodeText, encoderTable, type CharsetId } from './charset'
 import { bytesToBase64 } from './encoding'
 
 const hex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, '0')).join(' ')
@@ -176,6 +176,29 @@ describe('charset decode', () => {
     expect(decodeBytes(bytes('ef bb bf 41'), 'utf-8')).toEqual({ text: 'A', invalid: 0, bomRemoved: true })
     expect(decodeBytes(bytes('ff fe 41 00'), 'utf-16le')).toEqual({ text: 'A', invalid: 0, bomRemoved: true })
     expect(decodeBytes(bytes('fe ff 00 41'), 'utf-16be')).toEqual({ text: 'A', invalid: 0, bomRemoved: true })
+  })
+})
+
+describe('codePointCount', () => {
+  it.each([
+    ['empty', ''],
+    ['ASCII', 'abc'],
+    ['BMP', 'Tiếng Việt 日本語'],
+    ['surrogate pairs', '👋🏽 𝒳 😀'],
+    ['lone high surrogate', 'a\ud83db'],
+    ['lone high surrogate at the end', 'ab\ud83d'],
+    ['lone low surrogate', 'a\udc4bb'],
+    ['reversed pair', '\udc4b\ud83d'],
+    ['high surrogate before a pair', '\ud83d\ud83d\udc4b'],
+  ])('matches [...text].length: %s', (_, text) => {
+    expect(codePointCount(text)).toBe([...text].length)
+  })
+
+  it('counts a range, not splitting a pair inside it', () => {
+    const text = 'x👋y'
+    expect(codePointCount(text, 1, 3)).toBe(1)
+    expect(codePointCount(text, 1, 2)).toBe(1) // half a pair: the lone high surrogate
+    expect(codePointCount(text, 2)).toBe(2) // starts at the low surrogate
   })
 })
 

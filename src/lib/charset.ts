@@ -300,8 +300,11 @@ function encodeUtf8(text: string, prefix: number[]): EncodeResult {
   return { bytes, unmappable: [...missing.values()], decomposed: 0 }
 }
 
-/** Code points in text[from, to), counting a surrogate pair once. */
-function codePointCount(text: string, from: number, to: number): number {
+/**
+ * Code points in text[from, to), counting a surrogate pair once and a lone
+ * surrogate as one (like [...text].length, without allocating an array).
+ */
+export function codePointCount(text: string, from = 0, to = text.length): number {
   let n = 0
   for (let i = from; i < to; i++) {
     const c = text.charCodeAt(i)

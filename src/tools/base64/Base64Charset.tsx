@@ -3,7 +3,7 @@ import { Checkbox, Segmented, Select, Toolbar } from '../../components/controls'
 import { ErrorMessage, Notice } from '../../components/Messages'
 import { TextPane } from '../../components/TextPane'
 import { attempt, useDebounced } from '../../hooks'
-import { CHARSETS, charsetInfo, decodeBytes, detectCharset, encodeText, type CharsetId, type Unmappable } from '../../lib/charset'
+import { CHARSETS, charsetInfo, codePointCount, decodeBytes, detectCharset, encodeText, type CharsetId, type Unmappable } from '../../lib/charset'
 import { base64ToBytes, bytesToBase64 } from '../../lib/encoding'
 
 type Mode = 'encode' | 'decode'
@@ -54,7 +54,7 @@ export default function Base64Charset() {
     [encoded, blocked, urlSafe, dec],
   )
   // Code points, not UTF-16 units; counted once per decode rather than on every render.
-  const decodedChars = useMemo(() => (dec ? [...dec.text].length : 0), [dec])
+  const decodedChars = useMemo(() => (dec ? codePointCount(dec.text) : 0), [dec])
   const shownCharset = mode === 'encode' ? charset : dec?.used
   const latin1Note = shownCharset === 'iso-8859-1'
 
