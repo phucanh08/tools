@@ -49,7 +49,12 @@ export default function Base64Charset() {
   )
   const dec = decoded?.ok ? decoded.value : null
 
-  const output = encoded ? (blocked ? '' : bytesToBase64(encoded.bytes, { urlSafe })) : (dec?.text ?? '')
+  const output = useMemo(
+    () => (encoded ? (blocked ? '' : bytesToBase64(encoded.bytes, { urlSafe })) : (dec?.text ?? '')),
+    [encoded, blocked, urlSafe, dec],
+  )
+  // Code points, not UTF-16 units; counted once per decode rather than on every render.
+  const decodedChars = useMemo(() => (dec ? [...dec.text].length : 0), [dec])
   const shownCharset = mode === 'encode' ? charset : dec?.used
   const latin1Note = shownCharset === 'iso-8859-1'
 
@@ -117,7 +122,7 @@ export default function Base64Charset() {
         <TextPane
           label={mode === 'encode' ? 'Base64' : 'Decoded text'}
           value={output}
-          footer={mode === 'encode' ? `${output.length} characters` : dec ? `${dec.bytes.length} bytes → ${[...dec.text].length} characters` : undefined}
+          footer={mode === 'encode' ? `${output.length} characters` : dec ? `${dec.bytes.length} bytes → ${decodedChars} characters` : undefined}
         />
       </div>
       {encoded && encoded.unmappable.length > 0 &&

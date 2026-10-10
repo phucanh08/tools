@@ -13,7 +13,10 @@ import { startPreview } from './preview-server.mjs'
 import * as base64A from './checks/base64-a.mjs'
 import * as base64B from './checks/base64-b.mjs'
 
-const CHECK_MODULES = [base64A, base64B]
+const CHECK_MODULES = [
+  { name: 'base64-a', ...base64A },
+  { name: 'base64-b', ...base64B },
+]
 
 const CHROME =
   process.env.CHROME_PATH ||
@@ -192,7 +195,14 @@ async function interactions(page, log) {
   else ok(`keypair -> ${(await page.getByLabel('Algorithm').inputValue())} PEM public + private generated`)
 
   // 6. Per-tool checks contributed by scripts/checks/*.mjs.
-  for (const mod of CHECK_MODULES) await mod.run({ page, base, fail, ok })
+  // A throwing module is reported as a failure and the remaining modules still run.
+  for (const mod of CHECK_MODULES) {
+    try {
+      await mod.run({ page, base, fail, ok })
+    } catch (e) {
+      fail(`${mod.name}: check module threw: ${e instanceof Error ? e.message : String(e)}`)
+    }
+  }
 
   const csp = await cspOf(page)
   if (csp.length) fail(`interactions: CSP violations: ${csp.join('; ')}`)

@@ -164,7 +164,7 @@ function Preview({ bytes, mime, kind }: { bytes: Uint8Array<ArrayBuffer>; mime: 
       )}
       {kind === 'pdf' &&
         (showPdf ? (
-          <BlobFrame bytes={bytes} mime={mime} />
+          <BlobFrame bytes={bytes} />
         ) : (
           <div>
             <button type="button" className="btn" onClick={() => setShowPdf(true)}>
@@ -236,14 +236,18 @@ function BlobMediaElement({
   )
 }
 
-function BlobFrame({ bytes, mime }: { bytes: Uint8Array<ArrayBuffer>; mime: string }) {
-  // Only bytes that start with "%PDF-" reach here, served with type application/pdf
-  // (rendered by the browser's PDF viewer). object/embed are blocked by the CSP.
+const PDF_MIME = 'application/pdf'
+
+function BlobFrame({ bytes }: { bytes: Uint8Array<ArrayBuffer> }) {
+  // Only bytes that start with "%PDF-" reach here. The blob type is pinned to
+  // application/pdf rather than taken from a prop, so this unsandboxed frame can
+  // never be handed an HTML or SVG document, even if the caller's routing changes.
+  // The browser's PDF viewer renders it. object/embed are blocked by the CSP.
   // No sandbox attribute: Chrome refuses to load its PDF viewer in any sandboxed
   // frame (the frame shows "This page has been blocked by Chrome"; checked in
   // Chrome with sandbox="allow-scripts"). The blob: document is
   // application/pdf, never HTML, so the viewer, not page script, handles it, and
   // the user opens it explicitly with "Show PDF preview".
-  const ref = useBlobSrc<HTMLIFrameElement>(bytes, mime)
+  const ref = useBlobSrc<HTMLIFrameElement>(bytes, PDF_MIME)
   return <iframe ref={ref} title="PDF preview" className="preview-frame" />
 }
