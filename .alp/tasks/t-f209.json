@@ -4,27 +4,92 @@
   "priority": 4,
   "labels": [],
   "paths": [],
-  "parent": null,
+  "parent": "t-24fd",
   "blockedBy": [],
   "discoveredFrom": "t-076d",
   "related": [],
   "gates": [],
   "assignee": null,
-  "handoff": null,
+  "handoff": {
+    "outcome": "complete",
+    "summary": "Implemented t-f209 and committed locally on main as eceb8e3068d01f1188d25508f1b9083bc1ffc7ff. Optional React 19 Select ref preserves generic typing and existing callers; UTF-16LE/BE hint handler focuses Decode as after setDecodeAs. Browser regression assertion now checks actual activeElement. Independent reviewer codex:gpt-6-sol low passed with no findings. No code changed after review, no push, and main's .alp/tasks edits are untouched. Models: lead ran on supplied Codex session (exact self model/effort not exposed to this agent); the only delegated agent was codex:gpt-6-sol with thinking low, reviewer assignment alp-child-4780334f-d6b4-43f8-8943-9cfa52bb6c7e. No Claude agent ran.",
+    "candidate": [
+      "base: 50a09647c50a657f6f103560b764062d67b32f30",
+      "commit: eceb8e3068d01f1188d25508f1b9083bc1ffc7ff",
+      "/tmp/t-f209/red-build.log",
+      "/tmp/t-f209/red-browser.log",
+      "/tmp/t-f209/check.log",
+      "/tmp/t-f209/green-browser.log"
+    ],
+    "scope": [
+      "src/components/controls.tsx",
+      "src/tools/base64/Base64Charset.tsx",
+      "scripts/checks/base64-b.mjs"
+    ],
+    "verification": [
+      "Red proof: added assertion first, built unchanged implementation with pnpm build (exit 0), then pnpm browser against that build exited 1: exactly `FAIL charset: UTF-16 hint click did not focus the Decode as select`; decoding assertion passed; browser-check: 1 problem(s). Implemented source while baseline browser ran only after old build finished; dist stayed pre-fix through baseline completion.",
+      "Green: pnpm check exit 0: typecheck, lint, 15 test files / 339 tests passed, build passed, smoke: OK (35 tool routes).",
+      "Green: pnpm browser exit 0: `ok charset: UTF-16 hint click focuses the Decode as select`; `browser-check: OK (35 tool routes + home + 404, 0 console/CSP errors)`. Expected inert sandbox script warning only.",
+      "rg inspected all 9 Select call sites in 8 tool files; optional ref keeps every existing call compatible; typecheck confirms.",
+      "Independent review pass from codex:gpt-6-sol low: all four criteria passed; no actionable findings. Reviewer inspected static diff/callers; runtime checks independently executed by lead.",
+      "git diff --check and staged diff check passed. Commit contains exactly three scoped files and required Co-Authored-By trailer. Working tree remaining changes are only main's .alp/tasks."
+    ],
+    "risks": [
+      "Browser regression exercises UTF-16LE; UTF-16BE relies on the same reviewed handler rather than a separate browser case.",
+      "Reviewer did not run runtime checks; lead verified red and green with real Chrome."
+    ],
+    "discovered": [],
+    "ownership": "Claim released; no writers or servers retained. Delivery awaiting main acceptance; not pushed.",
+    "agent": "lead",
+    "at": "2026-10-10T06:48:31.616Z"
+  },
   "verified": null,
-  "closed": null,
+  "closed": {
+    "at": "2026-10-10T06:56:35.393Z",
+    "by": "main",
+    "reason": "done",
+    "summary": "Lead (Codex) commit eceb8e3: the shared Select takes an optional ref (all 9 callers unchanged; typecheck passes), and Base64Charset focuses \"Decode as\" after a UTF-16 hint click. New browser assertion: fails on the pre-fix build (\"did not focus the Decode as select\"), passes after the fix. Reviewer codex:gpt-6-sol low: pass, no findings. Main read the diff and re-ran pnpm check (339/339, smoke OK) + pnpm browser (OK, 0 console/CSP) exit 0; pushed, CI run 38032530614 success."
+  },
   "log": [
     {
       "at": "2026-10-10T06:09:56.176Z",
       "by": "main",
       "event": "created"
+    },
+    {
+      "at": "2026-10-10T06:26:57.780Z",
+      "by": "main",
+      "event": "linked",
+      "changes": [
+        "+parent t-24fd"
+      ]
+    },
+    {
+      "at": "2026-10-10T06:35:38.653Z",
+      "by": "main",
+      "event": "started",
+      "to": "lead",
+      "assignment": "alp-child-be72655a-bcdd-4708-8569-3e4288dd33c6"
+    },
+    {
+      "at": "2026-10-10T06:48:31.616Z",
+      "by": "lead",
+      "event": "submitted",
+      "outcome": "complete"
+    },
+    {
+      "at": "2026-10-10T06:56:35.393Z",
+      "by": "main",
+      "event": "closed",
+      "reason": "done",
+      "summary": "Lead (Codex) commit eceb8e3: the shared Select takes an optional ref (all 9 callers unchanged; typecheck passes), and Base64Charset focuses \"Decode as\" after a UTF-16 hint click. New browser assertion: fails on the pre-fix build (\"did not focus the Decode as select\"), passes after the fix. Reviewer codex:gpt-6-sol low: pass, no findings. Main read the diff and re-ran pnpm check (339/339, smoke OK) + pnpm browser (OK, 0 console/CSP) exit 0; pushed, CI run 38032530614 success."
     }
   ],
-  "rev": 1,
+  "rev": 5,
   "id": "t-f209",
   "title": "Giữ focus bàn phím sau khi bấm nút gợi ý UTF-16 ở Base64Charset",
-  "status": "open",
+  "status": "closed",
   "createdBy": "main",
   "createdAt": "2026-10-10T06:09:56.176Z",
-  "updatedAt": "2026-10-10T06:09:56.176Z"
+  "updatedAt": "2026-10-10T06:56:35.393Z"
 }

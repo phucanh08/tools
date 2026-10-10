@@ -4,27 +4,91 @@
   "priority": 4,
   "labels": [],
   "paths": [],
-  "parent": null,
+  "parent": "t-24fd",
   "blockedBy": [],
   "discoveredFrom": "t-076d",
   "related": [],
   "gates": [],
   "assignee": null,
-  "handoff": null,
+  "handoff": {
+    "outcome": "complete",
+    "summary": "NO-CHANGE recommendation for t-e015. Reproduced GBK 中文 (d6 d0 ce c4) → KOI8-R. Root cause: common GBK pairs score 3.5/2 = 1.75 per high byte, whereas their all-lowercase Cyrillic reading scores 1.8; the same coarse score supports real KOI8-R words. Tested two bounded candidates (multi-byte score ×1.10 and ×1.25 only below 8 bytes). Each improves 中/中文 but regresses KOI8-R тест/привет. Reject these candidates; retain documented low-confidence/override behavior. This is evidence against these simple fixes, not proof no future language-aware solution exists. No commit created because no tracked file changed; no push. Independent reviewer codex:gpt-6-sol low verdict PASS for this no-change recommendation, with limitations noted. Lead ran on Codex runtime; exact lead model ID is not exposed within the session (requester can confirm its selected model); no other worker/oracle models ran.",
+    "candidate": [
+      "Unchanged HEAD 50a09647c50a657f6f103560b764062d67b32f30",
+      "/tmp/t-e015/report.md — complete 72-row before/candidate-A/candidate-B/final-after table",
+      "/tmp/t-e015/compare.mjs — reproducible corpus",
+      "/tmp/t-e015/baseline.ts, boost110.ts, boost125.ts — isolated experimental source copies",
+      "/tmp/t-e015/results.txt — raw output"
+    ],
+    "scope": [
+      "Read src/lib/charset.ts and src/lib/charset.test.ts; no source files changed",
+      "Main-owned .alp/tasks files left untouched"
+    ],
+    "verification": [
+      "node /tmp/t-e015/compare.mjs: all 72 strings encode with zero unmappable characters. Exact detection accuracy before/A/B: GBK 5/7/7 of 8; Big5 4/4/4; Shift_JIS 8/8/8; EUC-JP 3/3/3; EUC-KR 8/8/8; windows-1251 7/7/7; KOI8-R 6/4/4; windows-1252 7/7/7; windows-1258 6/6/6. Each charset has 8 samples at multiple lengths. Final shipped after equals before.",
+      "Short (<8 byte) before/A/B: GBK 2/4/4 of 5; Big5 2/2/2 of 5; Shift_JIS 5/5/5 of 5; EUC-JP 1/1/1 of 5; EUC-KR 5/5/5 of 5; windows-1251 5/5/5 of 6; KOI8-R 4/2/2 of 6; windows-1252 5/5/5 of 6; windows-1258 4/4/4 of 6. All 23 samples >=8 bytes unchanged by both candidates.",
+      "pnpm test -- src/lib/charset.test.ts actually ran all 15 files: 339 passed, exit 0, 3.72s. pnpm test subsequently: 15 files/339 tests passed, exit 0, 3.70s.",
+      "git diff -- src/lib/charset.ts src/lib/charset.test.ts empty; git status shows only original main-owned .alp/tasks changes.",
+      "pnpm check / pnpm browser not run: assignment makes them conditional on source change; none made. No new unit tests required because no change retained.",
+      "Reviewer alp-child-0ed17dee-f6af-45eb-af71-78fad2c9281d, codex:gpt-6-sol low: PASS after inspecting source/candidate diffs/report; did not independently rerun tests."
+    ],
+    "risks": [
+      "Hand-selected corpus and two variations of one strategy do not rule out safer sophisticated approaches.",
+      "Known low-confidence mistakes remain, including GBK 中文→KOI8-R, Big5 中文→EUC-JP, EUC-JP 日本→GBK.",
+      "Evidence artifacts are in /tmp; main should retain relevant table in task record before cleanup."
+    ],
+    "discovered": [],
+    "ownership": "No file edits; claim p-7efee768 released. Scratch evidence retained for main. Reviewer completed.",
+    "agent": "lead",
+    "at": "2026-10-10T06:35:22.254Z"
+  },
   "verified": null,
-  "closed": null,
+  "closed": {
+    "at": "2026-10-10T06:35:30.974Z",
+    "by": "main",
+    "reason": "wontfix",
+    "summary": "No code change; a simple fix trades one error for another. Lead (Codex) reproduced GBK 中文 (d6 d0 ce c4) → KOI8-R: the GBK pairs score 1.75 per high byte, while the lowercase Cyrillic reading of the same bytes scores 1.8. Over a 72-string corpus in 9 charsets, the two candidates (multi-byte score ×1.10 / ×1.25 below 8 bytes) fix GBK 中/中文 (short GBK 2→4 of 5) but break KOI8-R тест/привет (short KOI8-R 4→2 of 6); inputs of 8+ bytes are unchanged. Other low-confidence misses stay (Big5 中文→EUC-JP, EUC-JP 日本→GBK); the user can override. Reviewer codex:gpt-6-sol low: PASS. Main re-ran /tmp/t-e015/compare.mjs and got the same result."
+  },
   "log": [
     {
       "at": "2026-10-10T06:09:50.734Z",
       "by": "main",
       "event": "created"
+    },
+    {
+      "at": "2026-10-10T06:26:56.553Z",
+      "by": "main",
+      "event": "linked",
+      "changes": [
+        "+parent t-24fd"
+      ]
+    },
+    {
+      "at": "2026-10-10T06:32:53.649Z",
+      "by": "main",
+      "event": "started",
+      "to": "lead",
+      "assignment": "alp-child-91289d6f-4551-4921-a06c-156dc451de5d"
+    },
+    {
+      "at": "2026-10-10T06:35:22.254Z",
+      "by": "lead",
+      "event": "submitted",
+      "outcome": "complete"
+    },
+    {
+      "at": "2026-10-10T06:35:30.974Z",
+      "by": "main",
+      "event": "closed",
+      "reason": "wontfix",
+      "summary": "No code change; a simple fix trades one error for another. Lead (Codex) reproduced GBK 中文 (d6 d0 ce c4) → KOI8-R: the GBK pairs score 1.75 per high byte, while the lowercase Cyrillic reading of the same bytes scores 1.8. Over a 72-string corpus in 9 charsets, the two candidates (multi-byte score ×1.10 / ×1.25 below 8 bytes) fix GBK 中/中文 (short GBK 2→4 of 5) but break KOI8-R тест/привет (short KOI8-R 4→2 of 6); inputs of 8+ bytes are unchanged. Other low-confidence misses stay (Big5 中文→EUC-JP, EUC-JP 日本→GBK); the user can override. Reviewer codex:gpt-6-sol low: PASS. Main re-ran /tmp/t-e015/compare.mjs and got the same result."
     }
   ],
-  "rev": 1,
+  "rev": 5,
   "id": "t-e015",
   "title": "Charset detector đoán sai input CJK rất ngắn (GBK '中文' → KOI8-R)",
-  "status": "open",
+  "status": "closed",
   "createdBy": "main",
   "createdAt": "2026-10-10T06:09:50.734Z",
-  "updatedAt": "2026-10-10T06:09:50.734Z"
+  "updatedAt": "2026-10-10T06:35:30.974Z"
 }

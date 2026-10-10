@@ -4,27 +4,84 @@
   "priority": 4,
   "labels": [],
   "paths": [],
-  "parent": null,
+  "parent": "t-24fd",
   "blockedBy": [],
   "discoveredFrom": "t-076d",
   "related": [],
   "gates": [],
   "assignee": null,
-  "handoff": null,
+  "handoff": {
+    "outcome": "complete",
+    "summary": "NO-CHANGE outcome for t-8158: Chrome does not reproduce dropped 0x8C bytes. Real Google Chrome 154.0.8037.98 (local /Applications/Google Chrome.app/Contents/MacOS/Google Chrome, headless via installed playwright-core) decoding EUC-JP 22 8c 22 8c returns escaped text \\\"\\uFFFD\\\"\\uFFFD, code points [U+0022,U+FFFD,U+0022,U+FFFD], replacementCount=2; fatal:true throws TypeError: Failed to execute 'decode' on 'TextDecoder': The encoded data was not valid. Side-by-side Node v26.3.0 / ICU 78.3 returns escaped text \\\"\\u008C\\\"\\u008C, code points [U+0022,U+008C,U+0022,U+008C], replacementCount=0; fatal:true succeeds with same text. Thus on current Node these are invisible C1 control characters, not lost bytes. Existing decodeBytes strict-then-replacement-count path will report Chrome invalid sequences. No code edits or commit, as required by non-reproduction branch.",
+    "candidate": [
+      "HEAD unchanged: 50a09647c50a657f6f103560b764062d67b32f30"
+    ],
+    "scope": [
+      "Read scripts/browser-check.mjs, package.json, src/lib/charset.ts",
+      "No project files modified; .alp/tasks changes from main left untouched"
+    ],
+    "verification": [
+      "Executed Node ESM inline probe importing project's playwright-core, using identical serializable probe function in Node and page.evaluate in actual installed Google Chrome; exit 0.",
+      "Single 8c: Chrome U+FFFD / fatal TypeError; Node U+008C / fatal success.",
+      "Controls 22 22 and a4 a2: both runtimes returned respectively U+0022 U+0022 and U+3042, zero replacements and fatal success.",
+      "git status confirms only pre-existing .alp task changes; no source edits. pnpm check/browser and independent review not required for no-change branch."
+    ],
+    "risks": [
+      "Evidence covers installed Chrome 154.0.8037.98 and Node v26.3.0 / ICU 78.3, not every browser/Node version.",
+      "Only this assigned Codex lead session ran; no peer/reviewer or other model launched. Runtime does not expose a reliable self-model/effort identifier to report beyond the assignment configuration."
+    ],
+    "discovered": [],
+    "ownership": "No write claims taken; checkout released unchanged.",
+    "agent": "lead",
+    "at": "2026-10-10T06:32:31.761Z"
+  },
   "verified": null,
-  "closed": null,
+  "closed": {
+    "at": "2026-10-10T06:32:45.277Z",
+    "by": "main",
+    "reason": "done",
+    "summary": "Not a bug in the browser; no code change. Lead (codex:gpt-6-astra low) showed in real Chrome 154 that EUC-JP 22 8c 22 8c decodes to U+0022 U+FFFD U+0022 U+FFFD (fatal throws), so decodeBytes reports it correctly. Node 26 / ICU 78 maps 0x8C to the invisible C1 control U+008C, which only looked like a dropped byte. Main reproduced both independently: Node [22,8c,22,8c], Chrome [22,fffd,22,fffd]."
+  },
   "log": [
     {
       "at": "2026-10-10T06:09:53.681Z",
       "by": "main",
       "event": "created"
+    },
+    {
+      "at": "2026-10-10T06:26:57.245Z",
+      "by": "main",
+      "event": "linked",
+      "changes": [
+        "+parent t-24fd"
+      ]
+    },
+    {
+      "at": "2026-10-10T06:31:23.089Z",
+      "by": "main",
+      "event": "started",
+      "to": "lead",
+      "assignment": "alp-child-dd7021b4-a890-48a9-b1aa-08941095a611"
+    },
+    {
+      "at": "2026-10-10T06:32:31.761Z",
+      "by": "lead",
+      "event": "submitted",
+      "outcome": "complete"
+    },
+    {
+      "at": "2026-10-10T06:32:45.277Z",
+      "by": "main",
+      "event": "closed",
+      "reason": "done",
+      "summary": "Not a bug in the browser; no code change. Lead (codex:gpt-6-astra low) showed in real Chrome 154 that EUC-JP 22 8c 22 8c decodes to U+0022 U+FFFD U+0022 U+FFFD (fatal throws), so decodeBytes reports it correctly. Node 26 / ICU 78 maps 0x8C to the invisible C1 control U+008C, which only looked like a dropped byte. Main reproduced both independently: Node [22,8c,22,8c], Chrome [22,fffd,22,fffd]."
     }
   ],
-  "rev": 1,
+  "rev": 5,
   "id": "t-8158",
   "title": "Kiểm tra trên Chrome: TextDecoder('euc-jp') có làm mất byte 0x8C không",
-  "status": "open",
+  "status": "closed",
   "createdBy": "main",
   "createdAt": "2026-10-10T06:09:53.681Z",
-  "updatedAt": "2026-10-10T06:09:53.681Z"
+  "updatedAt": "2026-10-10T06:32:45.277Z"
 }

@@ -1,0 +1,42 @@
+{
+  "description": "Gom 3 task P4 phát hiện từ t-076d để giao cho lead trong một assignment: đoán sai bảng mã với input CJK rất ngắn, kiểm tra trên Chrome việc EUC-JP làm mất byte 0x8C, và giữ focus sau khi bấm nút gợi ý UTF-16. Theo yêu cầu của user: chỉ dùng Codex, codex:gpt-6-astra low hoặc codex:gpt-6-sol low.",
+  "type": "epic",
+  "priority": 4,
+  "labels": [],
+  "paths": [],
+  "parent": null,
+  "blockedBy": [],
+  "discoveredFrom": null,
+  "related": [],
+  "gates": [],
+  "assignee": null,
+  "handoff": null,
+  "verified": null,
+  "closed": {
+    "at": "2026-10-10T06:56:37.325Z",
+    "by": "main",
+    "reason": "done",
+    "summary": "All 3 children closed, all run on Codex (gpt-6-astra low lead, gpt-6-sol low reviewers) as the user asked. t-8158: no bug in Chrome (U+FFFD correct; Node shows U+008C), no change. t-e015: wontfix, because the simple fixes regress KOI8-R (72-string corpus evidence). t-f209: focus fix eceb8e3, live, CI 38032530614 success."
+  },
+  "log": [
+    {
+      "at": "2026-10-10T06:26:54.958Z",
+      "by": "main",
+      "event": "created"
+    },
+    {
+      "at": "2026-10-10T06:56:37.325Z",
+      "by": "main",
+      "event": "closed",
+      "reason": "done",
+      "summary": "All 3 children closed, all run on Codex (gpt-6-astra low lead, gpt-6-sol low reviewers) as the user asked. t-8158: no bug in Chrome (U+FFFD correct; Node shows U+008C), no change. t-e015: wontfix, because the simple fixes regress KOI8-R (72-string corpus evidence). t-f209: focus fix eceb8e3, live, CI 38032530614 success."
+    }
+  ],
+  "rev": 2,
+  "id": "t-24fd",
+  "title": "Dọn 3 việc theo dõi của Base64Charset (t-e015, t-8158, t-f209)",
+  "status": "closed",
+  "createdBy": "main",
+  "createdAt": "2026-10-10T06:26:54.958Z",
+  "updatedAt": "2026-10-10T06:56:37.325Z"
+}
