@@ -12,7 +12,12 @@
   "assignee": null,
   "handoff": null,
   "verified": null,
-  "closed": null,
+  "closed": {
+    "at": "2026-10-10T02:18:34.656Z",
+    "by": "main",
+    "reason": "done",
+    "summary": "Ant Design-style nav live: dad7902 (Codex peer + lead) + a5c5db2 (8 review fixes by lead). Reviewer claude:fable: dad7902 pass_with_findings (2 medium, 6 low); re-review of fixes: all 8 pass, 3 optional low notes (aria-label \"Tool menu\", bridge width 12px, mount-time persist write is benign), carried into t-34ae. Main verified: typecheck/lint OK, 107/107 tests, build, smoke, browser-check OK; CI run 38016354428 success."
+  },
   "log": [
     {
       "at": "2026-10-10T00:27:27.441Z",
@@ -56,13 +61,20 @@
       "by": "main",
       "event": "updated",
       "note": "State 2026-10-10 02:06: dad7902 live. Reviewer (claude:fable) on dad7902: pass_with_findings, 2 medium + 6 low. Lead fix round alp-child-3b84bcff ended; its result was not seen by main (turn ended). The working tree holds uncommitted edits to App.tsx, styles.css, prefs.ts, app.test.ts and browser-check.mjs, with no commit. Next: alp_recall that assignment, verify, re-review, commit, push."
+    },
+    {
+      "at": "2026-10-10T02:18:34.656Z",
+      "by": "main",
+      "event": "closed",
+      "reason": "done",
+      "summary": "Ant Design-style nav live: dad7902 (Codex peer + lead) + a5c5db2 (8 review fixes by lead). Reviewer claude:fable: dad7902 pass_with_findings (2 medium, 6 low); re-review of fixes: all 8 pass, 3 optional low notes (aria-label \"Tool menu\", bridge width 12px, mount-time persist write is benign), carried into t-34ae. Main verified: typecheck/lint OK, 107/107 tests, build, smoke, browser-check OK; CI run 38016354428 success."
     }
   ],
-  "rev": 7,
+  "rev": 8,
   "id": "t-3b58",
   "title": "Làm lại navbar/sidebar đẹp hơn, tham khảo Ant Design",
-  "status": "open",
+  "status": "closed",
   "createdBy": "main",
   "createdAt": "2026-10-10T00:27:27.441Z",
-  "updatedAt": "2026-10-10T02:06:10.591Z"
+  "updatedAt": "2026-10-10T02:18:34.656Z"
 }

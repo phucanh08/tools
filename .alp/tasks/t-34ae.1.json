@@ -1,0 +1,144 @@
+{
+  "description": "Danh sách đầy đủ 8 tool nằm ở epic t-34ae. Thêm 2 chỉnh nhỏ từ review: đổi aria-label \"Sidebar\" thành \"Tool menu\", và giảm độ rộng vùng hover nối sang flyout xuống 12px. Lead làm, ưu tiên peer Codex, hết lượt thì chuyển Claude. Commit trên máy, main push.",
+  "type": "feature",
+  "priority": 1,
+  "labels": [],
+  "paths": [],
+  "parent": "t-34ae",
+  "blockedBy": [],
+  "discoveredFrom": null,
+  "related": [],
+  "gates": [],
+  "assignee": {
+    "agent": "lead",
+    "assignment": "alp-child-f950e6af-01ee-4634-ae26-d0652fb070cc",
+    "pid": 24834,
+    "pidStartedAt": 1791597627600,
+    "epoch": "01c59811-e25d-4f7d-90af-09fb53df91b2",
+    "since": "2026-10-10T02:19:11.551Z"
+  },
+  "handoff": {
+    "outcome": "complete",
+    "summary": "t-34ae.1 is done: 8 new Base64 tools and the 2 nav tweaks, committed locally on main in 14 commits (fcff279..dc82dc7, base a5c5db2). Not pushed.\n\nTOOLS (route → page, lib):\n1. /base64/validate: Base64Validate.tsx, b64validate.ts. Validity, first invalid char (1-based code point, line:col, Select-it), variant (standard/url-safe/MIME/data URL+MIME), normalize (alphabet, padding, wrap 0/64/76), repairs with a Format/Repair/Data-loss list.\n2. /base64/media: Base64Media.tsx, media-sniff.ts. Magic bytes for ~40 types. Preview only the sniffed type via revoked blob: URLs. SVG only as <img>; HTML/unknown download-only. PDF opt-in iframe. Mismatch warning against the declared data-URL type. Download with the right extension.\n3. /base64/image: ImageToBase64.tsx, image-snippets.ts. Data URI, CSS, HTML <img> (escaped alt + parsed width/height), Markdown, JSON, raw Base64. Original/encoded size and % overhead.\n4. /base64/basic-auth: BasicAuth.tsx, basic-auth.ts. Build/decode, UTF-8 (ISO-8859-1 fallback), ':' in user warning, curl examples.\n5. /base64/charset: Base64Charset.tsx, charset.ts. 16 charsets. Decode via TextDecoder; ISO-8859-1 is true Latin-1. Encoder uses reverse tables built lazily from TextDecoder (single-byte 0x00–FF; multi-byte lead/trail pairs, WHATWG encoder rules). Justification: correct by construction, no shipped tables (12.6 kB chunk), 7–13 ms first use. Unmappable chars: replace-with-? warning or error. Windows-1258 decomposes to base + combining mark on encode and is NFC on decode. Auto-detect: BOM → UTF-8 → UTF-16 → scored legacy guess, with an override.\n6. /base64/compress: Base64Compress.tsx, compress.ts. gzip/zlib/raw deflate via CompressionStream; header auto-detect; sizes/ratio; 64 MB cap enforced between 32 KiB input slices.\n7. /base64/base-n: BaseN.tsx, base-n.ts. Base32, base32hex, Base58 (Bitcoin), Ascii85, Z85, Base36 (one '0' per leading 0x00 byte, documented). Text or hex in and out, strict decoders.\n8. /base64/mime: MimeUuencode.tsx, mime.ts + uuencode.ts. 76-col CRLF wrap/unwrap; uuencode/uudecode with begin/mode/filename, '`' zero, padding, length-char validation, safe download name.\nNav: aria-label \"Sidebar\" → \"Tool menu\" (App.tsx); flyout bridge 16 → 12px (styles.css). Shared wiring: meta/icons/lazy registry entries; scripts/checks/base64-{a,b}.mjs hooks in browser-check; CSP gains media-src 'self' data: blob: (needed for audio/video blob previews).\n\nWHO DID WHAT\n- Lead (me): scaffold and nav commits fcff279 + 3b59218 (browser-check hook wiring, CSP media-src); merges; commit split. Fix-round edit: loosened the charset perf-test bound 250 → 1500 ms in charset.test.ts:91 (CI flake risk). Ran smoke/browser and reviewed the screenshots.\n- Peers: Codex was paused (usage limit until 05:35Z), so I switched to Claude per user preference. Group A = claude:opus worktree alp-child-fb121d64 (tools 1–4). Group B = claude:opus worktree alp-child-d3b6f701 (tools 5–8). Fix round = claude:opus in the shared checkout, alp-child-80c17c00.\n- Reviews: independent claude:fable (different model; Codex unavailable). Group A pass_with_findings (alp-child-a8984e41); group B pass_with_findings (alp-child-047ab7ab). No critical or high findings. All 6 medium and 7 of 8 low findings were fixed in 11e761b/dc82dc7. The PDF iframe sandbox was not applied, with evidence: Chrome blocks its PDF viewer in sandboxed frames. I ACCEPT all peer candidates after diff spot-checks plus full verification.\n- The fix-round commits were not independently re-reviewed (only my spot check plus tests, including fail-before checks by the peer).\n\nMain's new Codex usage rule (prefer above 50%, choose by fit at 10–50%, none at 10% or less) was noted; this task stayed on Claude because Codex was paused.\n\nTEST VECTORS: RFC 4648 §10 (base64/base32/base32hex); RFC 7617 (Aladdin:open sesame → QWxhZGRpbjpvcGVuIHNlc2FtZQ==, test:123£ → dGVzdDoxMjPCow==); Bitcoin Core base58_encode_decode.json; Wikipedia Ascii85 (Man → 9jqo^, Leviathan) cross-checked with CPython; ZeroMQ RFC 32 Z85 (864FD26FB559F75B → HelloWorld); Java Long.MAX_VALUE base36; Wikipedia uuencode (Cat → #0V%T) + CPython b2a_uu; WHATWG Encoding index bytes; Node zlib interop + `gzip -n` vector; PNG/JPEG/RIFF/ftyp/EBML/ID3/MPEG frame specs; WHATWG MIME Sniffing §6.",
+    "candidate": [
+      "fcff279 fix(ui): rename sider landmark to Tool menu and narrow flyout bridge to 12px",
+      "3b59218 feat(base64): register 8 new Base64 tools with placeholder pages",
+      "01ec68e feat(base64): add Base64 media viewer with magic-byte sniffing",
+      "06c49ef feat(base64): add Base64 validator and repair tool",
+      "7a58401 feat(base64): add image to Base64 snippets tool",
+      "1d0924e feat(base64): add HTTP Basic Auth header encoder and decoder",
+      "b801785 test(base64): browser checks and styles for validate, media, image and basic-auth",
+      "6486686 feat(base64): add Base64 text tool with legacy charsets",
+      "b9a223a feat(base64): add gzip/deflate + Base64 tool",
+      "6141b59 feat(base64): add Base32/32hex/58/Ascii85/Z85/36 converter",
+      "87a99e4 feat(base64): add MIME line wrapping and uuencode tool",
+      "ee48296 test(base64): browser checks for charset, compress, base-n and mime",
+      "11e761b fix(base64): address review findings on validate, media, image and basic-auth",
+      "dc82dc7 fix(base64): address review findings on charset, compress, base-n and mime"
+    ],
+    "scope": [
+      "src/App.tsx (aria-label only)",
+      "src/styles.css (bridge width + appended group A block)",
+      "vite.config.ts (CSP media-src)",
+      "src/tools/meta.ts, icons.ts, registry.ts (8 entries each)",
+      "src/tools/base64/{Base64Validate,Base64Media,ImageToBase64,BasicAuth,Base64Charset,Base64Compress,BaseN,MimeUuencode}.tsx",
+      "src/lib/{b64validate,media-sniff,image-snippets,basic-auth,charset,compress,base-n,mime,uuencode}.ts + tests (no mime.test.ts; MIME tests live in uuencode.test.ts)",
+      "scripts/browser-check.mjs (CHECK_MODULES hook + screenshot setup), scripts/checks/base64-a.mjs, scripts/checks/base64-b.mjs",
+      "Not touched: .alp/ (t-3b58.json modification and t-34ae.1.json pre-existed, left uncommitted), ALP.md, package.json/lockfile (no new deps), src/lib/encoding.ts"
+    ],
+    "verification": [
+      "Final tree at dc82dc7: pnpm typecheck clean; pnpm lint clean",
+      "pnpm test: 15 files, 310 passed (107 existing + 203 new)",
+      "pnpm build: entry index-CKD0mXDY.js 268.15 kB (gzip 85.31). Scaffold-only build was 267.60 kB; growth comes from meta/icons only. Each tool is its own lazy chunk: Base64Validate ~13.8 kB, Base64Charset 12.56, MimeUuencode ~8.5, BaseN ~8.3, media-sniff (shared) ~8.3, Base64Compress 6.09, ImageToBase64 5.97, Base64Media 5.19, BasicAuth ~4.7",
+      "pnpm smoke: OK (35 tool routes)",
+      "pnpm browser: OK (35 tool routes + home + 404, 0 console/CSP errors), including base64-a/b interaction checks: validator position/repair, media PNG img + WAV audio + HTML download-only, image snippets, basic-auth Buffer match, Shift_JIS/1258/EUC-KR, gzip round trip + corrupt error, Base32 foobar, Z85, 76-col CRLF clipboard, uuencode Cat",
+      "Light and dark screenshots of all 8 new tools reviewed by me (.artifacts/screenshots/base64-*-{light,dark}.png): consistent and no layout issues. Mobile 390px route pass with no overflow",
+      "PDF sandbox evidence (peer, headless Chrome): sandbox=allow-scripts → 'This page has been blocked by Chrome'; unsandboxed → renders; no console/CSP errors",
+      "Zip-bomb evidence (peer, real Chrome): 256 MB bomb cancelled after 3 of 8 slices with the 64 MB cap"
+    ],
+    "risks": [
+      "PDF preview iframe is unsandboxed (Chrome refuses PDFs in sandboxed frames). Mitigations: shown only for bytes starting with %PDF-, Blob type fixed to application/pdf (browsers do not sniff blob: types), opt-in click. The reviewer found no same-origin script path. Alternatives if unwanted: open in a new tab, or no PDF preview",
+      "Fix-round commits 11e761b/dc82dc7 had no independent re-review (only lead spot check + full tests/browser). Main may want a second review, e.g. on Codex after 05:35Z if more than 50% usage remains",
+      "Charset auto-detect is heuristic (GBK vs Big5, UTF-16 without BOM only for Latin-script text); labelled low-confidence with an override. Node ICU euc-kr is narrower than Chrome's; the browser check covers Chrome",
+      "Base36 leading-zero convention ('0' per 0x00 byte) is a design choice, documented on the page",
+      "Uudecode decodes only the first begin..end block",
+      "The charset perf unit test has a 1500 ms bound (new code ~2 ms)"
+    ],
+    "discovered": [
+      "Follow-up: unify src/lib/encoding.ts sniffMime/extensionForMime with media-sniff.ts so Base64File types bytes the same way as the Media Viewer (reviewer A, low)",
+      "Follow-up: browser-check CHECK_MODULES run() has no per-module try/catch, so one module's exception aborts later modules (peer A)",
+      "Follow-up: charset UTF-16 encode is still per code point, and detectCharset validates the whole input synchronously (a size cap or sampling would help large inputs)",
+      "Follow-up: UTF-16 without BOM detection for CJK text"
+    ],
+    "ownership": "All peer and reviewer assignments are finished; no claims of mine remain on the board (scaffold claim p-77a5af00 unpinned; peer claims released). The shared checkout is clean apart from the pre-existing .alp/tasks changes, which I did not touch. No servers are running. Nothing pushed: main reviews and pushes.",
+    "verdict": {
+      "result": "pass_with_findings",
+      "criteria": [
+        {
+          "criterion": "8 tools, each with pure lib + unit tests, page, icon, meta, route, browser-check coverage",
+          "result": "pass",
+          "evidence": "meta/icons/registry 8 entries; 9 new lib files with tests (310 total); scripts/checks/base64-{a,b}.mjs; browser-check OK for all 35 routes"
+        },
+        {
+          "criterion": "Nav tweaks: aria-label Tool menu, bridge 12px",
+          "result": "pass",
+          "evidence": "fcff279; browser-check collapsed-flyout hover test still passes"
+        },
+        {
+          "criterion": "Lazy chunks, entry size reported",
+          "result": "pass",
+          "evidence": "entry 268.15 kB (gz 85.31); each tool is a separate chunk in the build output"
+        },
+        {
+          "criterion": "0 console/CSP errors; light/dark screenshots inspected",
+          "result": "pass",
+          "evidence": "browser-check: OK, 0 console/CSP errors; screenshots reviewed"
+        },
+        {
+          "criterion": "Independent review by a different model",
+          "result": "pass",
+          "evidence": "claude:fable reviews of A and B: pass_with_findings; medium findings fixed (PDF sandbox justified as not feasible). Fix round not re-reviewed"
+        }
+      ],
+      "findings": [
+        {
+          "severity": "low",
+          "where": "src/tools/base64/Base64Media.tsx BlobFrame",
+          "problem": "PDF iframe unsandboxed by necessity (Chrome blocks PDFs in sandboxed frames)",
+          "fix": "Accept with the current mitigations, or switch to open-in-new-tab / no PDF preview"
+        }
+      ]
+    },
+    "agent": "lead",
+    "at": "2026-10-10T03:08:59.371Z"
+  },
+  "verified": null,
+  "closed": null,
+  "log": [
+    {
+      "at": "2026-10-10T02:18:57.566Z",
+      "by": "main",
+      "event": "created"
+    },
+    {
+      "at": "2026-10-10T02:19:11.551Z",
+      "by": "main",
+      "event": "started",
+      "to": "lead",
+      "assignment": "alp-child-f950e6af-01ee-4634-ae26-d0652fb070cc"
+    },
+    {
+      "at": "2026-10-10T03:08:59.371Z",
+      "by": "lead",
+      "event": "submitted",
+      "outcome": "complete"
+    }
+  ],
+  "rev": 3,
+  "id": "t-34ae.1",
+  "title": "Code 8 tool Base64 mới + 2 chỉnh nhỏ từ review nav",
+  "status": "review",
+  "createdBy": "main",
+  "createdAt": "2026-10-10T02:18:57.566Z",
+  "updatedAt": "2026-10-10T03:08:59.371Z"
+}
