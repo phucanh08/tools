@@ -241,6 +241,22 @@ describe('charset detection', () => {
     ] as [string, CharsetId][]) {
       expect(detectCharset(enc(text, charset)).charset, `${charset}: ${text}`).not.toMatch(/^utf-16/)
     }
+    // Stray control bytes (form feed, ESC, NUL, DOS EOF 0x1A) must not tip ASCII or legacy text into UTF-16.
+    const withControls = (pre: number[], text: string, charset: CharsetId, post: number[]) =>
+      new Uint8Array([...pre, ...enc(text, charset), ...post])
+    expect(detectCharset(enc('hello_world_foo\f', 'utf-8')).charset).toBe('utf-8')
+    expect(detectCharset(enc('passwordhunter\n\0', 'utf-8')).charset).toBe('utf-8')
+    expect(detectCharset(enc('\fhello_world_foo', 'utf-8')).charset).toBe('utf-8')
+    for (const [pre, text, charset, post] of [
+      [[0x78, 0x0c], 'これは日本語のテキストです。カタカナも少し。', 'shift_jis', []],
+      [[0x0c], '欢迎使用本软件，这是一段简体中文的测试文本。', 'gbk', [0x78]],
+      [[0x0c], '이것은 한국어 텍스트입니다. 결과를 확인해 봅시다.', 'euc-kr', [0x78]],
+      [[0x1b], 'これは日本語のテキストです。カタカナも少し。', 'shift_jis', [0x00]],
+      [[], 'これは日本語のテキストです。\r\nカタカナも少し。\r\n', 'shift_jis', [0x1a]],
+      [[], '這是一段繁體中文的測試文本，我們來看看結果。\n', 'big5', [0x1a]],
+    ] as [number[], string, CharsetId, number[]][]) {
+      expect(detectCharset(withControls(pre, text, charset, post)).charset, `${charset}: ${text}`).toBe(charset)
+    }
     // Too short to judge: fewer than 8 code units.
     expect(detectCharset(enc('你好，世界', 'utf-16le')).reason).not.toMatch(/CJK/)
   })

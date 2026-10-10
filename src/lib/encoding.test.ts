@@ -70,7 +70,6 @@ describe('hex', () => {
   })
 })
 
-
 describe('html entities', () => {
   it('minimal encode escapes the five special characters', () => {
     expect(encodeEntities(`<a href="x">Tom & Jerry's</a>`)).toBe(

@@ -116,6 +116,10 @@ describe('sniffMimeType', () => {
     // A genuine U+FFFD in UTF-16 text is still text (it used to fall through to the MPEG frame-sync check).
     expect(sniffMimeType(utf16le('\ufffd'.repeat(3) + ' replacement characters in UTF-16 text'))).toBe('text/plain')
     expect(sniffMimeType(utf16be('Unknown: \ufffd'))).toBe('text/plain')
+    expect(sniffMimeType(utf16le('Hi \ufffd there'))).toBe('text/plain') // was audio/mpeg
+    // A surrogate pair cut at the 4 KB sniffing boundary is not malformed.
+    const astral = (s: string) => new Uint8Array([0xff, 0xfe, ...Array.from({ length: s.length }, (_, i) => s.charCodeAt(i)).flatMap((u) => [u & 0xff, u >> 8])])
+    expect(sniffMimeType(astral('a'.repeat(2047) + '😀' + 'b'.repeat(10)))).toBe('text/plain')
     // A lone surrogate is malformed UTF-16, so the bytes are not treated as text.
     expect(sniffMimeType(new Uint8Array([0xff, 0xfe, 0x00, 0xd8, 0x41, 0x00]))).not.toBe('text/plain')
     expect(sniffMimeType(utf8Encode('ID3v2 is a metadata container used with MP3 files.'))).toBe('text/plain')

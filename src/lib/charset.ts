@@ -456,7 +456,9 @@ export function detectCharset(bytes: Uint8Array): Detection {
   // UTF-16 always has an even length; check the whole input, not the (even) sample.
   const even = bytes.length % 2 === 0
   if (bytes.every((b) => b < 0x80)) {
-    const utf16 = even ? (guessUtf16(sample) ?? guessUtf16Cjk(sample)) : null
+    // No CJK guess here: pairs of ASCII letters read as ideographs, and one stray
+    // control byte would turn plain ASCII into "UTF-16".
+    const utf16 = even ? guessUtf16(sample) : null
     if (utf16) return utf16
     return { charset: 'utf-8', reason: 'ASCII only (valid UTF-8)', confidence: 'high' }
   }
@@ -509,14 +511,19 @@ const CJK_RANGES: [number, number][] = [
 ]
 
 /**
- * UTF-16 CJK text without a BOM. Deliberately conservative; it only fires when:
- *   - the bytes contain a C0 control byte other than tab/LF/CR. UTF-16 CJK text
- *     almost always has one ("、" is 30 01, a space is 00 20), while Latin-1,
- *     UTF-8 and legacy CJK text never do. Without this, pairs of ASCII letters
- *     read as ideographs ("Bush hid the facts");
+ * UTF-16 CJK text without a BOM. Deliberately conservative: it misses short
+ * text and pure ideographs without punctuation, and only fires when:
+ *   - the bytes contain a C0 control byte other than tab/LF/CR (a cheap pre-check;
+ *     Latin-1, UTF-8 and legacy CJK text practically never contain one);
  *   - every code unit is CJK (ranges above) or printable ASCII/tab/LF/CR;
+ *   - at least two units are ASCII (high byte 0, e.g. a space 00 20), CJK
+ *     punctuation U+3000-U+301F ("、" is 30 01) or fullwidth forms U+FFxx ("，").
+ *     Legacy double-byte text read as UTF-16 gives units >= 0x8100 or Hangul
+ *     (no legacy byte is 0xFF), so at most a stray control byte at an edge
+ *     produces one such unit;
  *   - at least 4 code units, and 30% of them, are CJK;
  *   - exactly one byte order fits. Otherwise the input is left to the legacy guess.
+ * All-ASCII input never gets here: pairs of ASCII letters read as ideographs.
  */
 function guessUtf16Cjk(bytes: Uint8Array): Detection | null {
   if (bytes.length < 16) return null
@@ -537,12 +544,14 @@ function looksLikeCjk(bytes: Uint8Array, charset: 'utf-16le' | 'utf-16be'): bool
     return false
   }
   let cjk = 0
+  let anchors = 0
   for (let i = 0; i < text.length; i++) {
     const c = text.charCodeAt(i)
+    if (c < 0x80 || (c >= 0x3000 && c <= 0x301f) || c >= 0xff00) anchors++
     if (CJK_RANGES.some(([lo, hi]) => c >= lo && c <= hi)) cjk++
     else if (!((c >= 0x20 && c <= 0x7e) || c === 0x09 || c === 0x0a || c === 0x0d)) return false
   }
-  return cjk >= 4 && cjk >= text.length * 0.3
+  return anchors >= 2 && cjk >= 4 && cjk >= text.length * 0.3
 }
 
 const LATIN = /\p{Script=Latin}/u
