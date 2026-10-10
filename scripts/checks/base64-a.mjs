@@ -224,6 +224,7 @@ export async function run({ page, base, fail, ok }) {
   }
   // The real download uses the same name.
   await fill(page, 'Base64 or data URL', FILE_CASES[2][1])
+  await page.waitForFunction((m) => document.querySelector('main dd.mono')?.textContent === m, FILE_CASES[2][2], { timeout: 5000 })
   const [download] = await Promise.all([
     page.waitForEvent('download', { timeout: 5000 }),
     page.locator('main button', { hasText: /^Download / }).click(),
