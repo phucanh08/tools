@@ -397,7 +397,7 @@ export function repairBase64(input: string, options: Partial<RepairOptions> = {}
     const other = (s.replace(/\r|\n/g, '').match(/\s/g) ?? []).length
     s = s.replace(/\s+/g, '')
     if (breaks) changes.push({ kind: 'format', message: `Removed ${plural(breaks, 'line break')}.` })
-    if (other) changes.push({ kind: 'repair', message: `Removed ${plural(other, 'space or tab', 'spaces/tabs')}.` })
+    if (other) changes.push({ kind: 'repair', message: `Removed ${plural(other, 'whitespace character')}.` })
   }
 
   // 7. Stray characters outside both alphabets.

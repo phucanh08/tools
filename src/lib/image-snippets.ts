@@ -87,7 +87,8 @@ export function imageDimensions(b: Uint8Array): Dimensions | null {
       const b4 = b[24] ?? 0
       return valid({ width: 1 + (((b2 & 0x3f) << 8) | b1), height: 1 + (((b4 & 0x0f) << 10) | (b3 << 2) | ((b2 & 0xc0) >> 6)) })
     }
-    if (tag(b, 12, 'VP8X')) return valid({ width: 1 + u24le(b, 24), height: 1 + u24le(b, 27) })
+    // VP8X: canvas width/height minus one, 24-bit little-endian at offsets 24 and 27.
+    if (tag(b, 12, 'VP8X')) return b.length >= 30 ? valid({ width: 1 + u24le(b, 24), height: 1 + u24le(b, 27) }) : null
     return null
   }
   if (tag(b, 0, 'BM') && b.length >= 26) {
@@ -141,18 +142,27 @@ export interface Snippets {
   json: string
 }
 
-export function buildSnippets(bytes: Uint8Array, mime: string, alt: string, size: Dimensions | null): Snippets {
+/** The snippets that do not depend on the alt text (the expensive part: Base64 encoding). */
+export type EncodedImage = Pick<Snippets, 'base64' | 'dataUri' | 'css' | 'json'>
+
+export function encodeImage(bytes: Uint8Array, mime: string): EncodedImage {
   const base64 = bytesToBase64(bytes)
   const dataUri = `data:${mime};base64,${base64}`
+  return { base64, dataUri, css: `background-image: url("${dataUri}");`, json: JSON.stringify(dataUri) }
+}
+
+/** Adds the alt-text snippets to an encoded image (cheap; safe to run on every keystroke). */
+export function withAlt(encoded: EncodedImage, alt: string, size: Dimensions | null): Snippets {
   const dims = size ? ` width="${size.width}" height="${size.height}"` : ''
   return {
-    base64,
-    dataUri,
-    css: `background-image: url("${dataUri}");`,
-    html: `<img src="${dataUri}" alt="${escapeHtml(alt)}"${dims}>`,
-    markdown: `![${escapeMarkdownAlt(alt)}](${dataUri})`,
-    json: JSON.stringify(dataUri),
+    ...encoded,
+    html: `<img src="${encoded.dataUri}" alt="${escapeHtml(alt)}"${dims}>`,
+    markdown: `![${escapeMarkdownAlt(alt)}](${encoded.dataUri})`,
   }
+}
+
+export function buildSnippets(bytes: Uint8Array, mime: string, alt: string, size: Dimensions | null): Snippets {
+  return withAlt(encodeImage(bytes, mime), alt, size)
 }
 
 /** Size growth of Base64 over the original bytes, in percent (≈33.3% for large inputs). */

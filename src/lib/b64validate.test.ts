@@ -169,6 +169,12 @@ describe('repairBase64', () => {
     expect(repairBase64('SGk IQ==').output).not.toBe('SGk+IQ==')
   })
 
+  it('describes removed spaces, tabs and no-break spaces as whitespace', () => {
+    const r = repairBase64('Zm9v\tYm\u00a0Fy Zg==')
+    expect(r.output).toBe('Zm9vYmFyZg==')
+    expect(r.changes.map((c) => c.message)).toContain('Removed 3 whitespace characters.')
+  })
+
   it('clears non-canonical bits and wraps lines', () => {
     expect(repairBase64('Zh==').output).toBe('Zg==')
     const bytes = new Uint8Array(100).map((_, i) => (i * 37) & 0xff)

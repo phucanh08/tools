@@ -132,20 +132,92 @@ function indexOfAscii(bytes: Uint8Array, needle: string, from: number, to: numbe
   return -1
 }
 
-/** MPEG audio frame header (ISO/IEC 11172-3 §2.4.2.3): 11-bit sync, valid version/layer/bitrate/rate. */
-function isMpegAudioFrame(b0: number, b1: number, b2: number): 'audio/mpeg' | 'audio/aac' | null {
-  if (b0 !== 0xff || (b1 & 0xe0) !== 0xe0) return null
+// Bitrates in kbit/s by bitrate index 1-14 (ISO/IEC 11172-3 §2.4.2.3, ISO/IEC 13818-3 §2.4.2.3).
+const MPEG1_BITRATES = {
+  3: [32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448], // Layer I
+  2: [32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384], // Layer II
+  1: [32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320], // Layer III
+} as Record<number, number[]>
+const MPEG2_BITRATES = {
+  3: [32, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 224, 256],
+  2: [8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160],
+  1: [8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160],
+} as Record<number, number[]>
+// Sample rates by version bits (0 = MPEG-2.5, 2 = MPEG-2, 3 = MPEG-1) and rate index 0-2.
+const MPEG_RATES: Record<number, number[]> = { 0: [11025, 12000, 8000], 2: [22050, 24000, 16000], 3: [44100, 48000, 32000] }
+
+/**
+ * Length in bytes of the MPEG audio frame (or ADTS frame) whose header starts at
+ * `s`, or 0 if there is no valid header there. MPEG audio: ISO/IEC 11172-3
+ * §2.4.2.3 (version, layer, bitrate, sample rate, padding). ADTS: ISO/IEC
+ * 13818-7 §6.2 (12-bit sync, layer 00, 13-bit frame_length).
+ */
+function frameLength(bytes: Uint8Array, s: number): number {
+  if (s + 4 > bytes.length) return 0
+  const b1 = bytes[s + 1] ?? 0
+  const b2 = bytes[s + 2] ?? 0
+  if (bytes[s] !== 0xff || (b1 & 0xe0) !== 0xe0) return 0
   const version = (b1 >> 3) & 0x03
   const layer = (b1 >> 1) & 0x03
   if (layer === 0) {
-    // ADTS (ISO/IEC 13818-7): 12-bit sync 0xFFF, layer 00; sampling index 13-15 reserved.
-    return (b1 & 0xf0) === 0xf0 && ((b2 >> 2) & 0x0f) < 13 ? 'audio/aac' : null
+    // ADTS: sync 0xFFF and sampling index 13-15 reserved; the frame includes its 7-byte header.
+    if ((b1 & 0xf0) !== 0xf0 || ((b2 >> 2) & 0x0f) >= 13 || s + 6 > bytes.length) return 0
+    const len = (((bytes[s + 3] ?? 0) & 0x03) << 11) | ((bytes[s + 4] ?? 0) << 3) | ((bytes[s + 5] ?? 0) >> 5)
+    return len >= 7 ? len : 0
   }
-  if (version === 1) return null // reserved
-  const bitrate = b2 >> 4
-  const rate = (b2 >> 2) & 0x03
-  if (bitrate === 0x0f || rate === 0x03) return null
-  return 'audio/mpeg'
+  if (version === 1) return 0 // reserved
+  const index = b2 >> 4
+  const rates = MPEG_RATES[version]
+  const rate = rates?.[(b2 >> 2) & 0x03]
+  // Index 0 is "free format" (length cannot be computed) and 15 is forbidden.
+  const kbps = index >= 1 && index <= 14 ? (version === 3 ? MPEG1_BITRATES : MPEG2_BITRATES)[layer]?.[index - 1] : undefined
+  if (!kbps || !rate) return 0
+  const pad = (b2 >> 1) & 0x01
+  const bps = kbps * 1000
+  if (layer === 3) return (Math.floor((12 * bps) / rate) + pad) * 4 // Layer I: 4-byte slots
+  const perFrame = layer === 1 && version !== 3 ? 72 : 144 // Layer III in MPEG-2/2.5 has half the samples
+  return Math.floor((perFrame * bps) / rate) + pad
+}
+
+/**
+ * MPEG audio / ADTS without an ID3 tag. Two or three bytes of frame sync are a
+ * weak signature, so when the buffer is long enough the next frame header must
+ * follow at the computed frame length (WHATWG MIME Sniffing §6.4.4).
+ */
+function sniffFrameSync(bytes: Uint8Array): 'audio/mpeg' | 'audio/aac' | null {
+  const len = frameLength(bytes, 0)
+  if (len === 0) return null
+  if (len + 4 <= bytes.length && frameLength(bytes, len) === 0) return null
+  return ((bytes[1] ?? 0) >> 1) & 0x03 ? 'audio/mpeg' : 'audio/aac'
+}
+
+/** ID3v2 header (id3v2.4.0-structure §3.1): "ID3", version 2-4, revision, flags, 4 syncsafe size bytes. */
+function isId3v2(bytes: Uint8Array): boolean {
+  if (bytes.length < 10 || ascii(bytes, 0, 3) !== 'ID3') return false
+  const major = bytes[3] ?? 0
+  if (major < 2 || major > 4 || bytes[4] === 0xff || ((bytes[5] ?? 0) & 0x0f) !== 0) return false
+  for (let i = 6; i < 10; i++) if ((bytes[i] ?? 0) >= 0x80) return false
+  return true
+}
+
+/** PE image: DOS "MZ" header whose e_lfanew (offset 0x3C) points to "PE\0\0" (Microsoft PE format §2-3). */
+function isPortableExecutable(bytes: Uint8Array): boolean {
+  if (bytes.length < 64 || bytes[0] !== 0x4d || bytes[1] !== 0x5a) return false
+  const lfanew = ((bytes[0x3c] ?? 0) | ((bytes[0x3d] ?? 0) << 8) | ((bytes[0x3e] ?? 0) << 16) | ((bytes[0x3f] ?? 0) << 24)) >>> 0
+  return lfanew >= 64 && lfanew + 4 <= bytes.length && ascii(bytes, lfanew, lfanew + 4) === 'PE\u0000\u0000'
+}
+
+/**
+ * Text with a UTF-16 byte order mark (FF FE little-endian, FE FF big-endian).
+ * FF FE also looks like an MPEG frame sync, so this runs before that check.
+ */
+function isUtf16Text(bytes: Uint8Array): boolean {
+  const le = bytes[0] === 0xff && bytes[1] === 0xfe
+  if (!le && !(bytes[0] === 0xfe && bytes[1] === 0xff)) return false
+  const head = bytes.subarray(2, 2 + 4096)
+  // stream: a surrogate pair cut at the 4 KB boundary is held back instead of becoming U+FFFD.
+  const text = new TextDecoder(le ? 'utf-16le' : 'utf-16be').decode(head, { stream: true })
+  return !text.includes('�') && !hasBinaryControls(text)
 }
 
 const HEIF_BRANDS = new Set(['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'mif1', 'msf1'])
@@ -244,7 +316,7 @@ export function sniffMimeType(bytes: Uint8Array): string | null {
 
   // Documents and audio/video containers
   if (str('%PDF-')) return 'application/pdf'
-  if (str('ID3') && bytes.length >= 10) return 'audio/mpeg'
+  if (isId3v2(bytes)) return 'audio/mpeg'
   if (str('OggS')) {
     return indexOfAscii(bytes, '\u0080theora', 26, 128) >= 0 ? 'video/ogg' : 'audio/ogg'
   }
@@ -266,7 +338,14 @@ export function sniffMimeType(bytes: Uint8Array): string | null {
   }
   if (str('PK\u0005\u0006') || str('PK\u0007\u0008')) return 'application/zip'
   if (at([0x1f, 0x8b, 0x08])) return 'application/gzip'
-  if (str('BZh') && (bytes[3] ?? 0) >= 0x31 && (bytes[3] ?? 0) <= 0x39) return 'application/x-bzip2'
+  // bzip2: "BZh" + block size '1'-'9', then a block header (pi) or, for empty input, the end-of-stream marker (sqrt pi).
+  if (
+    str('BZh') &&
+    (bytes[3] ?? 0) >= 0x31 &&
+    (bytes[3] ?? 0) <= 0x39 &&
+    (at([0x31, 0x41, 0x59, 0x26, 0x53, 0x59], 4) || at([0x17, 0x72, 0x45, 0x38, 0x50, 0x90], 4))
+  )
+    return 'application/x-bzip2'
   if (at([0xfd, 0x37, 0x7a, 0x58, 0x5a, 0x00])) return 'application/x-xz'
   if (at([0x28, 0xb5, 0x2f, 0xfd])) return 'application/zstd'
   if (at([0x37, 0x7a, 0xbc, 0xaf, 0x27, 0x1c])) return 'application/x-7z-compressed'
@@ -278,10 +357,13 @@ export function sniffMimeType(bytes: Uint8Array): string | null {
   if (at([0x00, 0x61, 0x73, 0x6d])) return 'application/wasm'
   if (str('SQLite format 3\u0000')) return 'application/vnd.sqlite3'
   if (at([0x7f, 0x45, 0x4c, 0x46])) return 'application/x-elf'
-  if (str('MZ') && bytes.length >= 64) return 'application/vnd.microsoft.portable-executable'
+  if (isPortableExecutable(bytes)) return 'application/vnd.microsoft.portable-executable'
 
-  // MPEG audio without an ID3 tag: frame sync. Checked late because 2 bytes are a weak signature.
-  const frame = isMpegAudioFrame(bytes[0] ?? 0, bytes[1] ?? 0, bytes[2] ?? 0)
+  // UTF-16 text with a BOM: FF FE would otherwise pass as an MPEG Layer I frame sync.
+  if (isUtf16Text(bytes)) return 'text/plain'
+
+  // MPEG audio without an ID3 tag: frame sync. Checked late because it is a weak signature.
+  const frame = sniffFrameSync(bytes)
   if (frame) return frame
 
   return sniffText(bytes)

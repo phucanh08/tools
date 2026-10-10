@@ -68,6 +68,9 @@ describe('helpers', () => {
   it('detects control characters', () => {
     expect(hasControlChars('a\tb')).toBe(true)
     expect(hasControlChars('a\u007fb')).toBe(true)
+    expect(hasControlChars('a\u0080b')).toBe(true) // C1 controls U+0080-U+009F
+    expect(hasControlChars('a\u009fb')).toBe(true)
+    expect(hasControlChars('a\u00a0b')).toBe(false) // no-break space is not a control
     expect(hasControlChars('pässword €')).toBe(false)
   })
 

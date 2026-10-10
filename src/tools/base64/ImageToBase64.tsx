@@ -1,12 +1,12 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { TextField } from '../../components/controls'
 import { CopyButton } from '../../components/CopyButton'
 import { FilePicker } from '../../components/FilePicker'
 import { ErrorMessage, Notice, Spinner } from '../../components/Messages'
 import { TextPane } from '../../components/TextPane'
 import { errorMessage } from '../../hooks'
-import { bytesToDataUrl, formatSize } from '../../lib/encoding'
-import { altFromFileName, buildSnippets, imageDimensions, overheadPercent, type Dimensions } from '../../lib/image-snippets'
+import { formatSize } from '../../lib/encoding'
+import { altFromFileName, encodeImage, imageDimensions, overheadPercent, withAlt, type Dimensions } from '../../lib/image-snippets'
 import { mediaType, sniffMedia } from '../../lib/media-sniff'
 
 /** Snippets longer than this are offered via Copy only (huge textareas freeze the page). */
@@ -59,7 +59,12 @@ export default function ImageToBase64() {
     }
   }
 
-  const snippets = loaded ? buildSnippets(loaded.bytes, loaded.mime, alt.trim() || 'image', loaded.size) : null
+  // Encode once per image; typing alt text only rebuilds the two snippets that contain it.
+  const encoded = useMemo(() => (loaded ? encodeImage(loaded.bytes, loaded.mime) : null), [loaded])
+  const snippets = useMemo(
+    () => (loaded && encoded ? withAlt(encoded, alt.trim() || 'image', loaded.size) : null),
+    [loaded, encoded, alt],
+  )
   const original = loaded?.bytes.length ?? 0
   const canPreview = loaded !== null && loaded.bytes.length <= MAX_PREVIEW_BYTES && mediaType(loaded.mime).preview === 'image'
 
@@ -93,7 +98,7 @@ export default function ImageToBase64() {
           <TextField label="Alt text" value={alt} onChange={setAlt} width="24rem" hint="Used in the HTML and Markdown snippets (escaped)." />
           {canPreview && (
             <figure className="image-preview">
-              <img src={bytesToDataUrl(loaded.bytes, loaded.mime)} alt={alt || 'Image preview'} />
+              <img src={snippets.dataUri} alt={alt || 'Image preview'} />
             </figure>
           )}
           {snippets.dataUri.length > MAX_DISPLAY_CHARS && (

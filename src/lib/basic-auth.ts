@@ -58,11 +58,11 @@ export function decodeBasicAuth(input: string): DecodedBasicAuth {
   return { user: text.slice(0, colon), password: text.slice(colon + 1), token: s, charset }
 }
 
-/** RFC 7617 §2: control characters are not allowed in user-id or password. */
+/** RFC 7617 §2: control characters (C0, DEL and C1 U+0080-U+009F) are not allowed in user-id or password. */
 export function hasControlChars(s: string): boolean {
   for (let i = 0; i < s.length; i++) {
     const c = s.charCodeAt(i)
-    if (c < 0x20 || c === 0x7f) return true
+    if (c < 0x20 || (c >= 0x7f && c <= 0x9f)) return true
   }
   return false
 }

@@ -36,7 +36,8 @@ describe('sniffMimeType', () => {
     ['MP3 with ID3v2 tag', b(['ID3', [4, 0, 0, 0, 0, 0, 0]]), 'audio/mpeg'],
     ['MP3 frame sync (MPEG-1 Layer III 128 kbit/s 44.1 kHz)', b([[0xff, 0xfb, 0x90, 0x64]]), 'audio/mpeg'],
     ['MPEG-2 Layer III frame', b([[0xff, 0xf3, 0x84, 0xc4]]), 'audio/mpeg'],
-    ['AAC ADTS', b([[0xff, 0xf1, 0x50, 0x80]]), 'audio/aac'],
+    // ADTS frame_length = 16 (13 bits from bytes 3-5), so the next sync word is at offset 16.
+    ['AAC ADTS', b([[0xff, 0xf1, 0x50, 0x80, 0x02, 0x1f, 0xfc], [0, 0, 0, 0, 0, 0, 0, 0, 0], [0xff, 0xf1, 0x50, 0x80, 0x02, 0x1f, 0xfc]]), 'audio/aac'],
     ['WAV (RIFF/WAVE)', b(['RIFF', [36, 0, 0, 0], 'WAVEfmt ']), 'audio/wav'],
     ['AVI', b(['RIFF', [0, 0, 0, 0], 'AVI LIST']), 'video/x-msvideo'],
     ['Ogg (RFC 3533 capture pattern)', b(['OggS', [0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 19], 'OpusHead']), 'audio/ogg'],
@@ -53,7 +54,8 @@ describe('sniffMimeType', () => {
     ['ZIP (empty archive)', b(['PK', [5, 6]]), 'application/zip'],
     ['EPUB (OCF mimetype entry)', b(['PK', [3, 4], [10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0], 'mimetypeapplication/epub+zip'], 96), 'application/epub+zip'],
     ['gzip (RFC 1952)', b([[0x1f, 0x8b, 0x08, 0]]), 'application/gzip'],
-    ['bzip2', b(['BZh9']), 'application/x-bzip2'],
+    ['bzip2 (block header magic)', b(['BZh9', [0x31, 0x41, 0x59, 0x26, 0x53, 0x59]]), 'application/x-bzip2'],
+    ['bzip2 (empty stream, end-of-stream magic)', b(['BZh9', [0x17, 0x72, 0x45, 0x38, 0x50, 0x90, 0, 0, 0, 0]], 14), 'application/x-bzip2'],
     ['xz', b([[0xfd, 0x37, 0x7a, 0x58, 0x5a, 0]]), 'application/x-xz'],
     ['zstd', b([[0x28, 0xb5, 0x2f, 0xfd]]), 'application/zstd'],
     ['7z', b([[0x37, 0x7a, 0xbc, 0xaf, 0x27, 0x1c]]), 'application/x-7z-compressed'],
@@ -65,7 +67,8 @@ describe('sniffMimeType', () => {
     ['WebAssembly', b([[0, 0x61, 0x73, 0x6d, 1, 0, 0, 0]]), 'application/wasm'],
     ['SQLite', b(['SQLite format 3', [0]]), 'application/vnd.sqlite3'],
     ['ELF', b([[0x7f], 'ELF']), 'application/x-elf'],
-    ['PE/EXE', b(['MZ']), 'application/vnd.microsoft.portable-executable'],
+    // e_lfanew (offset 0x3C) = 0x40 points to the "PE\0\0" signature.
+    ['PE/EXE', b(['MZ', new Array(58).fill(0), [0x40, 0, 0, 0], 'PE', [0, 0, 0x4c, 0x01]], 96), 'application/vnd.microsoft.portable-executable'],
   ]
   for (const [name, bytes, mime] of cases) {
     it(name, () => expect(sniffMimeType(bytes)).toBe(mime))
@@ -81,6 +84,45 @@ describe('sniffMimeType', () => {
     expect(sniffMimeType(utf8Encode('<?xml version="1.0"?><root/>'))).toBe('application/xml')
     expect(sniffMimeType(utf8Encode('{"a":[1,2]}'))).toBe('application/json')
     expect(sniffMimeType(utf8Encode('hello world'))).toBe('text/plain')
+  })
+
+  it('requires a second MPEG frame header when the buffer is long enough (WHATWG §6.4.4)', () => {
+    // MPEG-1 Layer III, 128 kbit/s, 44.1 kHz, no padding: 144 * 128000 / 44100 = 417 bytes.
+    const header = [0xff, 0xfb, 0x90, 0x64]
+    const twoFrames = new Uint8Array(417 + 4 + 100)
+    twoFrames.set(header, 0)
+    twoFrames.set(header, 417)
+    expect(sniffMimeType(twoFrames)).toBe('audio/mpeg')
+    const oneHeader = new Uint8Array(417 + 4 + 100)
+    oneHeader.set(header, 0)
+    expect(sniffMimeType(oneHeader)).toBeNull()
+    // Padding bit adds one byte: the next header is at 418.
+    const padded = new Uint8Array(600)
+    padded.set([0xff, 0xfb, 0x92, 0x64], 0)
+    padded.set(header, 418)
+    expect(sniffMimeType(padded)).toBe('audio/mpeg')
+    // Free-format bitrate (index 0): frame length unknown, not accepted from a bare sync.
+    expect(sniffMimeType(b([[0xff, 0xfb, 0x00, 0x64]]))).toBeNull()
+    // ADTS with an impossible frame_length (< 7-byte header) is not AAC.
+    expect(sniffMimeType(b([[0xff, 0xf1, 0x50, 0x80]]))).toBeNull()
+  })
+
+  it('does not mistake text for weak binary signatures', () => {
+    const utf16le = (s: string) => new Uint8Array([0xff, 0xfe, ...[...s].flatMap((c) => [c.charCodeAt(0) & 0xff, c.charCodeAt(0) >> 8])])
+    const utf16be = (s: string) => new Uint8Array([0xfe, 0xff, ...[...s].flatMap((c) => [c.charCodeAt(0) >> 8, c.charCodeAt(0) & 0xff])])
+    expect(sniffMimeType(new Uint8Array([0xff, 0xfe, 0x48, 0x00, 0x69, 0x00]))).toBe('text/plain')
+    expect(sniffMimeType(utf16le('Hello, world! Xin chào'.repeat(40)))).toBe('text/plain')
+    expect(sniffMimeType(utf16be('Hello'))).toBe('text/plain')
+    expect(sniffMimeType(utf8Encode('ID3v2 is a metadata container used with MP3 files.'))).toBe('text/plain')
+    expect(sniffMimeType(utf8Encode('BZh9 hello'))).toBe('text/plain')
+    expect(sniffMimeType(utf8Encode('MZ is the DOS header magic. '.repeat(4)))).toBe('text/plain')
+    // "MZ" whose e_lfanew points outside the buffer or not to "PE\0\0" is not an executable.
+    expect(sniffMimeType(b(['MZ', new Array(58).fill(0), [0x40, 0, 0, 0], 'NE']))).toBeNull()
+    expect(sniffMimeType(b(['MZ', new Array(58).fill(0), [0, 1, 0, 0]]))).toBeNull()
+    // ID3 header with a non-syncsafe size byte or an unknown major version.
+    expect(sniffMimeType(b(['ID3', [4, 0, 0, 0, 0, 0x80, 0]]))).toBeNull()
+    expect(sniffMimeType(b(['ID3', [0xff, 0, 0, 0, 0, 0, 0]]))).toBeNull()
+    expect(sniffMimeType(b(['ID3', [3, 0, 0, 0, 0, 2, 1]]))).toBe('audio/mpeg')
   })
 
   it('returns null for unknown binary and empty input', () => {

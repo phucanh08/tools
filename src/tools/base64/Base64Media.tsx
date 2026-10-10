@@ -239,6 +239,11 @@ function BlobMediaElement({
 function BlobFrame({ bytes, mime }: { bytes: Uint8Array<ArrayBuffer>; mime: string }) {
   // Only bytes that start with "%PDF-" reach here, served with type application/pdf
   // (rendered by the browser's PDF viewer). object/embed are blocked by the CSP.
+  // No sandbox attribute: Chrome refuses to load its PDF viewer in any sandboxed
+  // frame (the frame shows "This page has been blocked by Chrome"; checked in
+  // Chrome with sandbox="allow-scripts"). The blob: document is
+  // application/pdf, never HTML, so the viewer, not page script, handles it, and
+  // the user opens it explicitly with "Show PDF preview".
   const ref = useBlobSrc<HTMLIFrameElement>(bytes, mime)
   return <iframe ref={ref} title="PDF preview" className="preview-frame" />
 }

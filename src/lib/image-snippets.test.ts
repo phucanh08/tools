@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { altFromFileName, buildSnippets, escapeHtml, escapeMarkdownAlt, imageDimensions, overheadPercent } from './image-snippets'
+import { altFromFileName, buildSnippets, encodeImage, escapeHtml, escapeMarkdownAlt, imageDimensions, overheadPercent, withAlt } from './image-snippets'
 import { base64ToBytes, utf8Encode } from './encoding'
 
 // A real 1×1 RGBA PNG (signature + IHDR + IDAT + IEND).
@@ -46,6 +46,9 @@ describe('imageDimensions', () => {
       height: 50,
     })
     expect(imageDimensions(riff('VP8X', [0, 0, 0, 0, 0x7f, 0x07, 0, 0x37, 0x04, 0]))).toEqual({ width: 1920, height: 1080 })
+    // Truncated VP8X header (29 bytes): unknown, not 1 x 1.
+    expect(imageDimensions(riff('VP8X', [0, 0, 0, 0, 0x7f, 0x07, 0, 0x37, 0x04]))).toBeNull()
+    expect(imageDimensions(riff('VP8X', []))).toBeNull()
   })
 
   it('reads SVG width/height or viewBox', () => {
@@ -84,6 +87,17 @@ describe('snippets', () => {
     expect(s.markdown).toBe(`![a "logo" <b>](${uri})`)
     expect(JSON.parse(s.json)).toBe(uri)
     expect(buildSnippets(png, 'image/png', 'x', null).html).toBe(`<img src="${uri}" alt="x">`)
+  })
+
+  it('reuses one encoding for every alt text', () => {
+    const png = base64ToBytes(PNG_1X1)
+    const encoded = encodeImage(png, 'image/png')
+    expect(encoded.dataUri).toBe(`data:image/png;base64,${PNG_1X1}`)
+    for (const alt of ['a', 'b [c]']) {
+      const s = withAlt(encoded, alt, { width: 1, height: 1 })
+      expect(s).toEqual(buildSnippets(png, 'image/png', alt, { width: 1, height: 1 }))
+      expect(s.dataUri).toBe(encoded.dataUri)
+    }
   })
 
   it('computes the Base64 overhead', () => {
