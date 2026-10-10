@@ -1,6 +1,6 @@
 import { deflateRawSync, deflateSync, gunzipSync, gzipSync, inflateRawSync, inflateSync } from 'node:zlib'
-import { describe, expect, it } from 'vitest'
-import { compressBytes, compressionRatio, decompressBytes, detectFormat, isGzip, isZlib, type CompressFormat } from './compress'
+import { describe, expect, it, vi } from 'vitest'
+import { SLICE_BYTES, compressBytes, compressionRatio, decompressBytes, detectFormat, isGzip, isZlib, sliceSource, type CompressFormat } from './compress'
 import { base64ToBytes, utf8Decode, utf8Encode } from './encoding'
 
 // Reference implementation: Node's zlib (independent of CompressionStream).
@@ -72,6 +72,47 @@ describe('compress', () => {
   it('stops when the output exceeds the limit', async () => {
     const bomb = gzipSync(new Uint8Array(1024 * 1024))
     await expect(decompressBytes(bomb, 'gzip', 64 * 1024)).rejects.toThrow(/larger than/)
+  })
+
+  it('feeds the input in slices', async () => {
+    const bytes = Uint8Array.from({ length: 2 * SLICE_BYTES + 5 }, (_, i) => i & 0xff)
+    const reader = sliceSource(bytes).getReader()
+    const sizes: number[] = []
+    const parts: Uint8Array[] = []
+    for (let r = await reader.read(); !r.done; r = await reader.read()) {
+      sizes.push(r.value.length)
+      parts.push(r.value)
+    }
+    expect(sizes).toEqual([SLICE_BYTES, SLICE_BYTES, 5])
+    expect(new Uint8Array(parts.flatMap((p) => [...p]))).toEqual(bytes)
+  })
+
+  it('stops pulling input as soon as the output cap is exceeded', async () => {
+    // Chromium's DecompressionStream is a TransformStream that inflates each written
+    // chunk synchronously; this stub does the same (1 MB of output per input chunk).
+    // Node's zlib-backed stream reads ahead regardless, so it cannot show this.
+    const written: number[] = []
+    class InflatingStub extends TransformStream<Uint8Array, Uint8Array> {
+      constructor() {
+        super({
+          transform(chunk, controller) {
+            written.push(chunk.length)
+            for (let i = 0; i < 16; i++) controller.enqueue(new Uint8Array(64 * 1024))
+          },
+        })
+      }
+    }
+    vi.stubGlobal('DecompressionStream', InflatingStub)
+    try {
+      const input = new Uint8Array(20 * SLICE_BYTES)
+      await expect(decompressBytes(input, 'deflate-raw', 3 * 1024 * 1024)).rejects.toThrow(/larger than 3 MB/)
+      // 4 slices inflate past 3 MB; at most one more may be queued by the pipe.
+      expect(written.every((n) => n === SLICE_BYTES)).toBe(true)
+      expect(written.length).toBeGreaterThanOrEqual(4)
+      expect(written.length).toBeLessThanOrEqual(5)
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 
   it('computes the ratio', () => {

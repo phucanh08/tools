@@ -39,14 +39,34 @@ async function collect(stream: ReadableStream<Uint8Array>, limit: number): Promi
   return out
 }
 
-function pipe(bytes: Uint8Array, transform: CompressionStream | DecompressionStream): ReadableStream<Uint8Array> {
-  const source = new ReadableStream<Uint8Array>({
-    start(controller) {
-      if (bytes.length) controller.enqueue(bytes)
-      controller.close()
+/** Input is fed to the (de)compressor in slices of this size. */
+export const SLICE_BYTES = 32 * 1024
+
+/**
+ * A pull-based stream over `bytes`, one slice per pull (highWaterMark 0, so
+ * nothing is read ahead). Feeding a zip bomb in one chunk lets the browser
+ * inflate all of it before collect() sees the first output; with slices,
+ * collect() checks the cap between slices and its cancel() stops the pulls.
+ */
+export function sliceSource(bytes: Uint8Array, sliceBytes = SLICE_BYTES): ReadableStream<Uint8Array> {
+  let offset = 0
+  return new ReadableStream<Uint8Array>(
+    {
+      pull(controller) {
+        if (offset >= bytes.length) {
+          controller.close()
+          return
+        }
+        controller.enqueue(bytes.subarray(offset, offset + sliceBytes))
+        offset += sliceBytes
+      },
     },
-  })
-  return source.pipeThrough(transform as unknown as ReadableWritablePair<Uint8Array, Uint8Array>)
+    { highWaterMark: 0 },
+  )
+}
+
+function pipe(bytes: Uint8Array, transform: CompressionStream | DecompressionStream): ReadableStream<Uint8Array> {
+  return sliceSource(bytes).pipeThrough(transform as unknown as ReadableWritablePair<Uint8Array, Uint8Array>)
 }
 
 export async function compressBytes(bytes: Uint8Array, format: CompressFormat): Promise<Uint8Array<ArrayBuffer>> {

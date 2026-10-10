@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Checkbox, Segmented, Toolbar } from '../../components/controls'
 import { downloadBytes } from '../../components/download'
 import { ErrorMessage, Notice, Spinner } from '../../components/Messages'
@@ -50,7 +50,9 @@ export default function Base64Compress() {
   const value = result?.ok ? result.value : null
   const comp = value?.kind === 'compress' && mode === 'compress' ? value : null
   const decomp = value?.kind === 'decompress' && mode === 'decompress' ? value : null
-  const text = decomp && isValidUtf8(decomp.bytes) ? utf8Decode(decomp.bytes) : null
+  const decompBytes = decomp?.bytes
+  // Up to 64 MB: validate and decode once per result, not on every render.
+  const text = useMemo(() => (decompBytes && isValidUtf8(decompBytes) ? utf8Decode(decompBytes) : null), [decompBytes])
   const output = comp?.output ?? text ?? ''
   const stale = pending || input !== debounced
 

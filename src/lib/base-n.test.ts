@@ -33,6 +33,10 @@ describe('base32 / base32hex', () => {
     expect(() => decodeBaseN('MZX', 'base32')).toThrow(/length 3 is not a valid/)
     expect(() => decodeBaseN('MY=====', 'base32')).toThrow(/multiple of 8/)
     expect(() => decodeBaseN('MY==A===', 'base32')).toThrow(/padding in the middle/)
+    // RFC 4648 §6: the pad count is fixed by the body length.
+    expect(() => decodeBaseN('MZXW6YTB========', 'base32')).toThrow(/8 "=" padding character\(s\), expected 0/)
+    expect(() => decodeBaseN('MY==============', 'base32')).toThrow(/14 "=" padding character\(s\), expected 6/)
+    expect(() => decodeBaseN('CPNMUOG=========', 'base32hex')).toThrow(/expected 1/)
     expect(() => decodeBaseN('MZ======', 'base32')).toThrow(/non-zero unused bits/)
     expect(() => decodeBaseN('W', 'base32hex')).toThrow(/Base32hex/)
   })

@@ -221,8 +221,8 @@ export function encodeText(text: string, charset: CharsetId, opts: EncodeOptions
     else if (charset === 'utf-16le') out.push(0xff, 0xfe)
     else out.push(0xfe, 0xff)
   }
+  if (charset === 'utf-8') return encodeUtf8(text, out)
   const table = info.kind === 'single' || info.kind === 'multi' ? encoderTable(charset) : null
-  const utf8 = new TextEncoder()
 
   for (const char of text) {
     const cp = char.codePointAt(0) ?? 0
@@ -234,13 +234,10 @@ export function encodeText(text: string, charset: CharsetId, opts: EncodeOptions
     }
     switch (info.kind) {
       case 'unicode':
-        if (charset === 'utf-8') out.push(...utf8.encode(char))
-        else {
-          for (let i = 0; i < char.length; i++) {
-            const unit = char.charCodeAt(i)
-            if (charset === 'utf-16le') out.push(unit & 0xff, unit >> 8)
-            else out.push(unit >> 8, unit & 0xff)
-          }
+        for (let i = 0; i < char.length; i++) {
+          const unit = char.charCodeAt(i)
+          if (charset === 'utf-16le') out.push(unit & 0xff, unit >> 8)
+          else out.push(unit >> 8, unit & 0xff)
         }
         break
       case 'latin1':
@@ -269,6 +266,52 @@ export function encodeText(text: string, charset: CharsetId, opts: EncodeOptions
     index++
   }
   return { bytes: new Uint8Array(out), unmappable: [...missing.values()], decomposed }
+}
+
+const LONE_SURROGATE = /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/
+const LONE_SURROGATES = new RegExp(LONE_SURROGATE.source, 'g')
+
+/**
+ * UTF-8 in one TextEncoder call (encoding per code point is ~100x slower on
+ * large inputs). Lone surrogates are found in one regex pass, reported as
+ * unmappable and written as "?", as in the other charsets.
+ */
+function encodeUtf8(text: string, prefix: number[]): EncodeResult {
+  const missing = new Map<number, Unmappable>()
+  let clean = text
+  if (LONE_SURROGATE.test(text)) {
+    let index = 0 // code points before `last`
+    let last = 0
+    for (const m of text.matchAll(LONE_SURROGATES)) {
+      index += codePointCount(text, last, m.index)
+      last = m.index + 1
+      const cp = m[0].charCodeAt(0)
+      const seen = missing.get(cp)
+      if (seen) seen.count++
+      else missing.set(cp, { char: m[0], codePoint: cp, count: 1, firstIndex: index })
+      index++
+    }
+    clean = text.replace(LONE_SURROGATES, '?')
+  }
+  const body = new TextEncoder().encode(clean)
+  const bytes = new Uint8Array(prefix.length + body.length)
+  bytes.set(prefix)
+  bytes.set(body, prefix.length)
+  return { bytes, unmappable: [...missing.values()], decomposed: 0 }
+}
+
+/** Code points in text[from, to), counting a surrogate pair once. */
+function codePointCount(text: string, from: number, to: number): number {
+  let n = 0
+  for (let i = from; i < to; i++) {
+    const c = text.charCodeAt(i)
+    n++
+    if (c >= 0xd800 && c <= 0xdbff) {
+      const d = text.charCodeAt(i + 1)
+      if (i + 1 < to && d >= 0xdc00 && d <= 0xdfff) i++
+    }
+  }
+  return n
 }
 
 /**
@@ -317,10 +360,27 @@ export interface DecodeResult {
   invalid: number
   /** A byte order mark matching the charset was found and removed. */
   bomRemoved: boolean
+  /**
+   * Set when Windows-1258 text (base letters + combining tone marks) was
+   * normalized to NFC, i.e. precomposed letters such as "ế".
+   */
+  normalized?: true
 }
 
-/** Decodes bytes in the given charset, counting invalid sequences instead of throwing. */
+/**
+ * Decodes bytes in the given charset, counting invalid sequences instead of
+ * throwing. Windows-1258 output is NFC-normalized: the charset stores most
+ * Vietnamese letters as base + combining mark, which many fonts, searches and
+ * comparisons handle poorly.
+ */
 export function decodeBytes(bytes: Uint8Array, charset: CharsetId): DecodeResult {
+  const r = decodeRaw(bytes, charset)
+  if (charset !== 'windows-1258') return r
+  const text = r.text.normalize('NFC')
+  return text === r.text ? r : { ...r, text, normalized: true }
+}
+
+function decodeRaw(bytes: Uint8Array, charset: CharsetId): DecodeResult {
   if (charset === 'iso-8859-1') {
     // TextDecoder("iso-8859-1") is Windows-1252 per the WHATWG Encoding Standard;
     // real ISO-8859-1 maps every byte to the code point of the same value.
@@ -406,6 +466,12 @@ export function detectCharset(bytes: Uint8Array): Detection {
   return { charset, reason: `best guess (not UTF-8; looks like ${charsetInfo(charset).label})`, confidence: 'low' }
 }
 
+/**
+ * UTF-16 without a BOM, from the share of zero bytes in one half of each code
+ * unit. Only works for mostly Latin-script text (ASCII/Latin-1 code points have
+ * a zero high byte); UTF-16 CJK, Cyrillic or Vietnamese text without a BOM is
+ * not recognized and falls through to the legacy-charset guess.
+ */
 function guessUtf16(bytes: Uint8Array): Detection | null {
   if (bytes.length < 4 || bytes.length % 2 !== 0) return null
   let zeroEven = 0

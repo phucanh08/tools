@@ -92,6 +92,9 @@ export function base32Decode(text: string, hex = false): Uint8Array<ArrayBuffer>
   if (firstPad >= 0) {
     if (!/^=+$/.test(s.slice(firstPad))) throw new Error(`Invalid ${name}: "=" padding in the middle (position ${firstPad + 1})`)
     if (s.length % 8 !== 0) throw new Error(`Invalid ${name}: padded input must be a multiple of 8 characters`)
+    const pad = s.length - firstPad
+    const expected = (8 - (body.length % 8)) % 8
+    if (pad !== expected) throw new Error(`Invalid ${name}: ${pad} "=" padding character(s), expected ${expected}`)
   }
   // Valid unpadded lengths mod 8: 0, 2, 4, 5, 7 (RFC 4648 §6: 1-5 bytes per 8-char block).
   if ([1, 3, 6].includes(body.length % 8)) throw new Error(`Invalid ${name}: length ${body.length} is not a valid encoding length`)

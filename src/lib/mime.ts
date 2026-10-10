@@ -35,5 +35,8 @@ export function lineStats(text: string): LineStats {
   const crlf = (text.match(/\r\n/g) ?? []).length
   const lf = (text.match(/\n/g) ?? []).length - crlf
   const lines = text.split(/\r?\n/)
-  return { lines: lines.length, longest: Math.max(...lines.map((l) => l.length)), crlf, lf }
+  // A loop, not Math.max(...lines): spreading ~150k+ arguments throws RangeError.
+  let longest = 0
+  for (const l of lines) if (l.length > longest) longest = l.length
+  return { lines: lines.length, longest, crlf, lf }
 }

@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Checkbox, Segmented, Select, Toolbar } from '../../components/controls'
 import { ErrorMessage, Notice } from '../../components/Messages'
 import { TextPane } from '../../components/TextPane'
-import { attempt } from '../../hooks'
+import { attempt, useDebounced } from '../../hooks'
 import { CHARSETS, charsetInfo, decodeBytes, detectCharset, encodeText, type CharsetId, type Unmappable } from '../../lib/charset'
 import { base64ToBytes, bytesToBase64 } from '../../lib/encoding'
 
@@ -10,6 +10,9 @@ type Mode = 'encode' | 'decode'
 type OnUnmappable = 'replace' | 'error'
 
 const CHARSET_OPTIONS = CHARSETS.map((c) => ({ value: c.id, label: c.label }))
+
+/** Inputs longer than this (characters) are debounced. */
+const LARGE_INPUT = 100_000
 
 function describeUnmappable(list: Unmappable[]): string {
   const shown = list.slice(0, 8).map((u) => `"${u.char}" (U+${u.codePoint.toString(16).toUpperCase().padStart(4, '0')}${u.count > 1 ? ` ×${u.count}` : ''})`)
@@ -25,18 +28,25 @@ export default function Base64Charset() {
   const [bom, setBom] = useState(false)
   const [urlSafe, setUrlSafe] = useState(false)
 
-  const encoded = mode === 'encode' && input !== '' ? encodeText(input, charset, { bom }) : null
+  // Large inputs are processed after typing pauses (charset detection is ~0.3 s per MB).
+  const debounced = useDebounced(input, 250)
+  const text = input.length > LARGE_INPUT ? debounced : input
+
+  const encoded = useMemo(() => (mode === 'encode' && text !== '' ? encodeText(text, charset, { bom }) : null), [mode, text, charset, bom])
   const blocked = encoded !== null && encoded.unmappable.length > 0 && onUnmappable === 'error'
 
-  const decoded =
-    mode === 'decode' && input.trim() !== ''
-      ? attempt(() => {
-          const bytes = base64ToBytes(input)
-          const detection = decodeAs === 'auto' ? detectCharset(bytes) : null
-          const used = detection?.charset ?? (decodeAs as CharsetId)
-          return { bytes, detection, used, ...decodeBytes(bytes, used) }
-        })
-      : null
+  const decoded = useMemo(
+    () =>
+      mode === 'decode' && text.trim() !== ''
+        ? attempt(() => {
+            const bytes = base64ToBytes(text)
+            const detection = decodeAs === 'auto' ? detectCharset(bytes) : null
+            const used = detection?.charset ?? (decodeAs as CharsetId)
+            return { bytes, detection, used, ...decodeBytes(bytes, used) }
+          })
+        : null,
+    [mode, text, decodeAs],
+  )
   const dec = decoded?.ok ? decoded.value : null
 
   const output = encoded ? (blocked ? '' : bytesToBase64(encoded.bytes, { urlSafe })) : (dec?.text ?? '')
@@ -139,6 +149,11 @@ export default function Base64Charset() {
             </>
           )}
           {dec.bomRemoved && ' The byte order mark was removed.'}
+          {dec.normalized &&
+            ' Windows-1258 stores most Vietnamese letters as a base letter plus a combining tone mark; the text was normalized to precomposed form (NFC).'}
+          {dec.detection?.confidence === 'low' && !dec.detection.charset.startsWith('utf-16') && (
+            <> UTF-16 without a byte order mark is only detected for mostly Latin-script text.</>
+          )}
         </Notice>
       )}
       {dec && dec.invalid > 0 && (

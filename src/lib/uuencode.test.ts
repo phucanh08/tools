@@ -61,6 +61,19 @@ describe('uudecode', () => {
     expect(() => uudecode('begin 644 x\n#0V~T\n`\nend')).toThrow(/invalid character "~"/)
     expect(uudecode('begin 644 x\n#0V%T\n').warnings).toEqual(['Missing "end" line; the data may be truncated'])
     expect(uudecode('begin 644 x\n#0V%T\nend').warnings).toEqual(['Missing zero-length ("`") line before "end"'])
+
+  })
+
+  it('validates the length character and flags heavily padded lines', () => {
+    // "N" would mean 46 bytes (max is 45 = "M"); "a" and "~" are outside the alphabet.
+    expect(() => uudecode('begin 644 x\nN0V%T\n`\nend')).toThrow(/Line 2: invalid length character "N"/)
+    expect(() => uudecode('begin 644 x\na0V%T\n`\nend')).toThrow(/invalid length character "a"/)
+    expect(uudecode('begin 644 x\nM' + '`'.repeat(60) + '\n`\nend').bytes.length).toBe(45)
+    // "#" (3 bytes) needs 4 characters; 2 missing is normal trailing-space loss, 3 is not.
+    expect(uudecode('begin 644 x\n#0V\n`\nend').warnings).toEqual([])
+    expect(uudecode('begin 644 x\n#0\n`\nend').warnings).toEqual([
+      'Line 2: 3 missing character(s) padded with zeros; the line may be truncated',
+    ])
   })
 
   it('makes download names safe', () => {
@@ -77,6 +90,12 @@ describe('MIME line wrapping', () => {
     expect(wrapped.split('\r\n').map((l) => l.length)).toEqual([76, 76, 48])
     expect(wrapped.endsWith('\r\n')).toBe(false)
     expect(lineStats(wrapped)).toEqual({ lines: 3, longest: 76, crlf: 2, lf: 0 })
+
+  })
+
+  it('counts lines of very large inputs without a stack overflow', () => {
+    const many = 'QUJD\n'.repeat(300_000) + 'QUJDREVG'
+    expect(lineStats(many)).toEqual({ lines: 300_001, longest: 8, crlf: 0, lf: 300_000 })
   })
 
   it('supports other widths and LF, and is idempotent', () => {

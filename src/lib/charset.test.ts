@@ -67,6 +67,28 @@ describe('charset encode', () => {
   it('treats lone surrogates as unmappable even in UTF-8 / UTF-16', () => {
     expect(encodeText('a\ud800', 'utf-8').unmappable).toHaveLength(1)
     expect(hex(encodeText('\udc00', 'utf-16le').bytes)).toBe('3f 00')
+
+  })
+
+  it('encodes UTF-8 in one pass, reporting lone surrogates with code-point positions', () => {
+    const text = 'é😀\ud800x\udc00😀\ud800'
+    const r = encodeText(text, 'utf-8', { bom: true })
+    expect(hex(r.bytes)).toBe('ef bb bf c3 a9 f0 9f 98 80 3f 78 3f f0 9f 98 80 3f')
+    expect(r.unmappable).toEqual([
+      { char: '\ud800', codePoint: 0xd800, count: 2, firstIndex: 2 },
+      { char: '\udc00', codePoint: 0xdc00, count: 1, firstIndex: 4 },
+    ])
+    // A valid pair followed by a lone low surrogate: only the last one is reported.
+    expect(encodeText('\udbff\udfff\udfff', 'utf-8').unmappable).toEqual([
+      { char: '\udfff', codePoint: 0xdfff, count: 1, firstIndex: 1 },
+    ])
+    const big = 'Xin chào 😀 thế giới. '.repeat(50_000) // ~1.1 M UTF-16 code units
+    const start = performance.now()
+    const large = encodeText(big, 'utf-8')
+    const ms = performance.now() - start
+    expect(large.bytes).toEqual(new TextEncoder().encode(big))
+    expect(large.unmappable).toEqual([])
+    expect(ms).toBeLessThan(1500) // per code point it took 0.6-2.9 s; generous bound for slow CI runners
   })
 
   it('adds a BOM only for Unicode charsets when asked', () => {
@@ -93,7 +115,8 @@ describe('charset encode', () => {
         text += String.fromCodePoint(cp)
         all.push(...b)
       }
-      expect(decodeBytes(new Uint8Array(all), c.id).text, c.id).toBe(text)
+      // Windows-1258 decoding is NFC-normalized (e.g. "Ư" + U+0309 becomes "Ử").
+      expect(decodeBytes(new Uint8Array(all), c.id).text, c.id).toBe(c.id === 'windows-1258' ? text.normalize('NFC') : text)
       expect(Array.from(encodeText(text, c.id).bytes), c.id).toEqual(all)
     }
   })
@@ -129,6 +152,16 @@ describe('charset decode', () => {
     expect(r.text).toBe('a�b')
     expect(r.invalid).toBe(1)
     expect(decodeBytes(bytes('ef bf bd'), 'utf-8')).toEqual({ text: '�', invalid: 0, bomRemoved: false })
+  })
+
+  it('NFC-normalizes Windows-1258 (base letter + combining tone mark)', () => {
+    const r = decodeBytes(bytes('54 69 ea ec 6e 67 20 56 69 ea f2 74'), 'windows-1258')
+    expect(r.text).toBe('Tiếng Việt'.normalize('NFC'))
+    expect(r.text.length).toBe(10)
+    expect(r.normalized).toBe(true)
+    expect(decodeBytes(bytes('41 42'), 'windows-1258')).toEqual({ text: 'AB', invalid: 0, bomRemoved: false })
+    // Other charsets are left as decoded.
+    expect(decodeBytes(bytes('65 cc 81'), 'utf-8').text).toBe('e\u0301')
   })
 
   it('removes a BOM that matches the charset', () => {

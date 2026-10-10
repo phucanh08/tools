@@ -87,7 +87,12 @@ export function uudecode(text: string): UuDecoded {
       terminated = true
       continue
     }
-    const count = (raw.charCodeAt(0) - 32) & 63
+    // Length character: " " or "`" (0 bytes) up to "M" (45 bytes).
+    const lengthChar = raw.charCodeAt(0)
+    if (!((lengthChar >= 0x20 && lengthChar <= 0x4d) || lengthChar === 0x60)) {
+      throw new Error(`Line ${n + 1}: invalid length character "${raw[0]}" (expected " " to "M", or "\`")`)
+    }
+    const count = (lengthChar - 32) & 63
     if (count === 0) {
       terminated = true
       continue
@@ -96,7 +101,12 @@ export function uudecode(text: string): UuDecoded {
     let body = raw.slice(1)
     const bad = body.search(/[^\x20-\x60]/)
     if (bad >= 0) throw new Error(`Line ${n + 1}: invalid character "${body[bad]}" at column ${bad + 2}`)
-    if (body.length < needed) body = body.padEnd(needed, ' ') // trailing spaces stripped in transit
+    if (body.length < needed) {
+      // Trailing spaces (zero values) may be stripped in transit; more than two missing suggests truncation.
+      const missing = needed - body.length
+      if (missing > 2) warnings.push(`Line ${n + 1}: ${missing} missing character(s) padded with zeros; the line may be truncated`)
+      body = body.padEnd(needed, ' ')
+    }
     if (body.length > needed + 1) warnings.push(`Line ${n + 1}: ${body.length - needed} extra character(s) ignored`)
     const line: number[] = []
     for (let j = 0; j < needed; j += 4) {
