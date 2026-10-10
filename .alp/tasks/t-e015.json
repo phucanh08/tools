@@ -1,0 +1,30 @@
+{
+  "description": "Phát hiện từ t-9d12/t-076d (lead): detectCharset/scoreCharset trong src/lib/charset.ts chấm điểm yếu với legacy CJK dưới khoảng 6 byte, ví dụ GBK '中文' (4 byte) bị đoán là KOI8-R. Cần xem có cách chấm điểm tốt hơn cho input ngắn, hoặc chấp nhận và ghi chú.",
+  "type": "bug",
+  "priority": 4,
+  "labels": [],
+  "paths": [],
+  "parent": null,
+  "blockedBy": [],
+  "discoveredFrom": "t-076d",
+  "related": [],
+  "gates": [],
+  "assignee": null,
+  "handoff": null,
+  "verified": null,
+  "closed": null,
+  "log": [
+    {
+      "at": "2026-10-10T06:09:50.734Z",
+      "by": "main",
+      "event": "created"
+    }
+  ],
+  "rev": 1,
+  "id": "t-e015",
+  "title": "Charset detector đoán sai input CJK rất ngắn (GBK '中文' → KOI8-R)",
+  "status": "open",
+  "createdBy": "main",
+  "createdAt": "2026-10-10T06:09:50.734Z",
+  "updatedAt": "2026-10-10T06:09:50.734Z"
+}

@@ -1,0 +1,30 @@
+{
+  "description": "Phát hiện từ t-076d (lead), chưa xác minh: trong Node, TextDecoder('euc-jp') decode 22 8c 22 8c (UTF-16LE '谢谢') ra '\"\"' mà không báo lỗi, byte 0x8C biến mất thay vì thành U+FFFD. Có thể chỉ xảy ra với Node ICU. Cần thử lại trên Chrome; nếu lặp lại thì decodeBytes đang đếm thiếu chuỗi byte không hợp lệ trong trường hợp này.",
+  "type": "bug",
+  "priority": 4,
+  "labels": [],
+  "paths": [],
+  "parent": null,
+  "blockedBy": [],
+  "discoveredFrom": "t-076d",
+  "related": [],
+  "gates": [],
+  "assignee": null,
+  "handoff": null,
+  "verified": null,
+  "closed": null,
+  "log": [
+    {
+      "at": "2026-10-10T06:09:53.681Z",
+      "by": "main",
+      "event": "created"
+    }
+  ],
+  "rev": 1,
+  "id": "t-8158",
+  "title": "Kiểm tra trên Chrome: TextDecoder('euc-jp') có làm mất byte 0x8C không",
+  "status": "open",
+  "createdBy": "main",
+  "createdAt": "2026-10-10T06:09:53.681Z",
+  "updatedAt": "2026-10-10T06:09:53.681Z"
+}

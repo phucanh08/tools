@@ -10,21 +10,125 @@
   "related": [],
   "gates": [],
   "assignee": null,
-  "handoff": null,
+  "handoff": {
+    "outcome": "complete",
+    "summary": "All three tasks are done and committed locally on main as 5 commits on top of d2c3820. Nothing is pushed, and .alp/tasks was not touched. Its 3 modified files in the working tree are main's.\n\nCommits (oldest first):\n- ec97a14 t-9d12, scripts/checks/base64-a.mjs: browser checks for Base64 File. Base64 → File: raw text/JSON/HTML/TIFF get file.txt/.json/.html/.tiff (both button and placeholder), the real JSON download is named file.json, and HEIC/TIFF data URLs show no <img>. File → Base64: HEIC/PSD uploads declared image/* show no <img>. PNG is the positive control in both directions.\n- f49fe8d t-a363, src/lib/charset.ts, src/lib/charset.test.ts, src/tools/base64/Base64Charset.tsx: export the existing codePointCount (defaults from=0, to=length; body unchanged) and use it in place of [...dec.text].length. Unit tests compare it with [...text].length for surrogate pairs, lone high/low surrogates, a reversed pair, a trailing high surrogate, and range semantics.\n- cae735a t-076d, src/lib/charset.ts, charset.test.ts, Base64Charset.tsx, scripts/checks/base64-b.mjs: UTF-16 hint, unit tests, browser check, screenshot.\n- e62aee3 t-9d12 (review follow-up), base64-a.mjs: wait for the JSON state before the download click.\n- 20d84af t-076d (review follow-up), the same 4 files as cae735a: copy fixes, documented trade-off plus a pinning test, the vacuous test case dropped, the browser check waits for the decoded value.\n\nPer task:\n- t-9d12: done. Discrimination is proven, not argued: I ran the new checks against a 6c32772^ build (a temporary detached worktree with the current check harness, since removed). Result: 9 FAILs, one for every non-control case (text/JSON/HTML/raw TIFF detected as octet-stream; HEIC/TIFF data URLs named file.bin and given 1 <img>; the JSON download named file.bin; HEIC/PSD uploads given 1 <img>). PNG controls pass on both builds.\n- t-a363: done.\n- t-076d: done, on the HINT branch. \"Decode as\" already offers UTF-16LE and UTF-16BE (they are in CHARSETS), so I added no new option. The detector is not loosened. looksLikeCjk now delegates to a shared readCjkUnits scan that is logically identical; the reviewer fuzzed 300k inputs and found 0 detectCharset differences against d2c3820. The new utf16CjkAlternatives(bytes, detection) shows the hint only for an auto-detect, low-confidence, non-UTF-16 guess on even-length input of 4 bytes or more, when a byte order decodes as valid UTF-16 made only of CJK and printable-ASCII units, with at least 2 CJK units and at least 50% CJK, over a 64 KB sample. It is memoized. The notice then adds: \"It may also be UTF-16 without a byte order mark: as UTF-16LE it reads “日本語…” [Decode as UTF-16LE]\". This uses the btn btn-small pattern from Base64Validate, and the button sets \"Decode as\". Gate deviation from the brief, with its reason: I gated on whether the UTF-16 reading is plausible, not on \"many U+FFFD / legacy-CJK guess\". A probe showed short UTF-16 CJK decodes in legacy charsets with 0 U+FFFD, and about half of it is guessed as windows-125x, so the suggested gate would miss most target cases. The reviewer measured that gating on a legacy-CJK guess would drop 23 of 53 target hits. The hint shows a preview, so the user can judge the reading. Browser check: the hint shows for short UTF-16LE Japanese, one click decodes it, and no hint shows for an EUC-KR sentence. It fails on a pre-hint build (\"no UTF-16LE hint for short UTF-16 Japanese\").\n\nScreenshots (t-076d): .artifacts/screenshots/base64-charset-utf16-hint-light.png and -dark.png. I checked them visually.\n\nReviewer: claude:opus, read-only, assignment alp-child-fd5af36b-2b43-4d82-b1eb-c8603b899b88. Codex was paused on its usage limit until 05:35Z, so I switched to Claude under the user rule. Verdict: pass_with_findings, all 4 criteria passed. Findings: 1 medium and 4 low.\n- Medium (the hint also fires on most short, correctly detected legacy CJK, e.g. Shift_JIS 日本語 previews as “鏺陻質”): accepted as a trade-off, as the reviewer recommended. The docstring now documents it, a unit test pins it, and the copy reads as a continuation of \"if the text looks wrong\".\n- Low, \"or\" separator between two byte orders: fixed.\n- Low, stale-read waits in both checks: fixed.\n- Low, vacuous \"under 4 bytes\" test: removed.\n- Low, focus drops to <body> after the click: NOT fixed. The shared Select in src/components/controls.tsx takes no ref, which is outside my scope.\nI made no re-review of the small follow-up delta (e62aee3 and 20d84af, 20 lines); main should look at it.",
+    "candidate": [
+      "ec97a14 (t-9d12) scripts/checks/base64-a.mjs",
+      "f49fe8d (t-a363) src/lib/charset.ts, src/lib/charset.test.ts, src/tools/base64/Base64Charset.tsx",
+      "cae735a (t-076d) src/lib/charset.ts, src/lib/charset.test.ts, src/tools/base64/Base64Charset.tsx, scripts/checks/base64-b.mjs",
+      "e62aee3 (t-9d12 review follow-up) scripts/checks/base64-a.mjs",
+      "20d84af (t-076d review follow-up) src/lib/charset.ts, src/lib/charset.test.ts, src/tools/base64/Base64Charset.tsx, scripts/checks/base64-b.mjs",
+      ".artifacts/screenshots/base64-charset-utf16-hint-light.png",
+      ".artifacts/screenshots/base64-charset-utf16-hint-dark.png"
+    ],
+    "scope": [
+      "scripts/checks/base64-a.mjs",
+      "scripts/checks/base64-b.mjs",
+      "src/lib/charset.ts",
+      "src/lib/charset.test.ts",
+      "src/tools/base64/Base64Charset.tsx"
+    ],
+    "verification": [
+      "Final HEAD 20d84af: `pnpm check` exited 0 (typecheck, lint, vitest: Test Files 15 passed, Tests 339 passed; build; smoke: OK (35 tool routes))",
+      "Final HEAD 20d84af: `pnpm browser` exited 0 with 0 FAIL lines: 'browser-check: OK (35 tool routes + home + 404, 0 console/CSP errors)'. New lines: 11 'ok file: …' (PNG control, plain text→file.txt, JSON→file.json, HTML→file.html, raw TIFF→file.tiff, HEIC/TIFF data URL no preview, JSON download saved as file.json, upload png preview, upload heic/psd no preview), 'ok charset: no UTF-16 hint for EUC-KR text', 'ok charset: UTF-16LE hint for short Japanese, one click decodes it'",
+      "Discrimination: the same check modules run against a 6c32772^ build gave 'browser-check: 11 problem(s)', including 9 'FAIL file: …' (every non-control case) and 'FAIL charset: no UTF-16LE hint for short UTF-16 Japanese' (the 11th is the hint screenshot setup timing out). PNG controls were ok on both builds",
+      "pnpm vitest run src/lib/charset.test.ts: 74 passed (after the follow-ups: 3 cases changed, total 74)",
+      "Reviewer (claude:opus): 300k-input fuzz found 0 detectCharset differences between d2c3820 and cae735a; 200k-string fuzz found 0 codePointCount mismatches against [...s].length and against the old function on ranges; utf16CjkAlternatives took 1.24 ms on a 320 KB input"
+    ],
+    "risks": [
+      "The UTF-16 hint is a deliberately loose gate. It also appears for short, correctly detected legacy double-byte CJK (the reviewer measured 51 of 84 short Shift_JIS/EUC-KR/GBK/EUC-JP/Big5 strings) and for some Latin-1 text with paired accented letters, e.g. windows-1252 'café'. The preview shows garbled CJK in those cases, and a non-reader could mistake it for real text. The copy is phrased as an option ('It may also be…'), and detection itself is unchanged.",
+      "Keyboard focus drops to <body> after the hint button is clicked, because the hint unmounts. A fix needs a ref or focus support in the shared Select (src/components/controls.tsx), which is out of scope.",
+      "No independent re-review of the 20-line follow-up delta (e62aee3, 20d84af); pnpm check and pnpm browser pass on it.",
+      "Base64 File checks use synthetic header-only TIFF/HEIC/PSD fixtures, not real image files. They cover sniffing and preview gating, not decoding."
+    ],
+    "discovered": [
+      "Charset detector, very short input: GBK '中文' (4 bytes) is guessed as KOI8-R. Short legacy-CJK scoring is weak below about 6 bytes (src/lib/charset.ts detectCharset/scoreCharset).",
+      "Unverified, possibly Node-ICU-only: in my Node probe, TextDecoder('euc-jp') decoded the bytes 22 8c 22 8c (UTF-16LE '谢谢') to '\"\"' with invalid=0. The 0x8C bytes vanished instead of becoming U+FFFD. Worth checking in Chrome; if it reproduces, decodeBytes under-reports invalid sequences for that case.",
+      "a11y: the hint button unmounts on click and focus is lost. Fixing it would need the shared Select to forward a ref (src/components/controls.tsx)."
+    ],
+    "ownership": "Claim p-26dac1fb released. All work is committed on local main (5 commits, d2c3820..20d84af), not pushed. The working tree is clean apart from main's 3 modified .alp/tasks files, which I did not touch. The temporary worktree at /tmp/lead-scratch/old was removed. No peer wrote anything; all implementation is lead-authored and needs main's review.",
+    "verdict": {
+      "result": "pass_with_findings",
+      "criteria": [
+        {
+          "criterion": "t-9d12 browser checks cover the new default names and image-preview gating, and fail against pre-6c32772",
+          "result": "pass",
+          "evidence": "pnpm browser OK on HEAD (11 new ok lines); 6c32772^ build gave 9 FAIL file: lines, one per non-control case"
+        },
+        {
+          "criterion": "t-a363 non-allocating codePointCount exported and reused, with a unit test for surrogate pairs and a lone surrogate",
+          "result": "pass",
+          "evidence": "charset.test.ts codePointCount suite passes; reviewer's fuzz found 0 mismatches"
+        },
+        {
+          "criterion": "t-076d detector not loosened; hint (options already existed) plus browser check",
+          "result": "pass",
+          "evidence": "Reviewer fuzz: 0 detectCharset diffs; browser check 'UTF-16LE hint for short Japanese, one click decodes it' passes and fails on a pre-hint build"
+        },
+        {
+          "criterion": "Independent review, with fail findings fixed",
+          "result": "pass",
+          "evidence": "claude:opus reviewer: pass_with_findings (no fail). Medium accepted and documented; 3 of 4 lows fixed; focus-loss low deferred (out of scope)"
+        }
+      ],
+      "findings": [
+        {
+          "severity": "medium",
+          "where": "src/lib/charset.ts utf16CjkAlternatives",
+          "problem": "The hint also fires for many short legacy CJK inputs that were detected correctly",
+          "fix": "Accepted trade-off, documented, and pinned by a unit test. Revisit only if users find it noisy."
+        },
+        {
+          "severity": "low",
+          "where": "src/tools/base64/Base64Charset.tsx hint button",
+          "problem": "Focus is lost after the click",
+          "fix": "Make the shared Select forward a ref, then focus it after setDecodeAs"
+        }
+      ]
+    },
+    "agent": "lead",
+    "at": "2026-10-10T06:08:54.756Z"
+  },
   "verified": null,
-  "closed": null,
+  "closed": {
+    "at": "2026-10-10T06:17:34.411Z",
+    "by": "main",
+    "reason": "done",
+    "summary": "Lead-authored ec97a14 + e62aee3 (scripts/checks/base64-a.mjs): 11 browser checks for Base64 File default names (.txt/.json/.html/.tiff) and image-preview gating (HEIC/TIFF/PSD no <img>), PNG controls. Proven discriminating: 9 FAILs against a 6c32772^ build. Evidence: main re-ran pnpm check (339/339 tests, smoke OK) + pnpm browser (OK, 0 console/CSP) exit 0; pushed d2c3820..20d84af, CI run 38030245435 success. Independent review: claude:opus reviewer pass_with_findings; follow-up delta reviewed by main."
+  },
   "log": [
     {
       "at": "2026-10-10T04:19:58.275Z",
       "by": "main",
       "event": "created"
+    },
+    {
+      "at": "2026-10-10T05:20:22.128Z",
+      "by": "main",
+      "event": "started",
+      "to": "lead",
+      "assignment": "alp-child-87e98eeb-b26a-4e81-bdaf-8986d2f5daa5"
+    },
+    {
+      "at": "2026-10-10T06:08:54.756Z",
+      "by": "lead",
+      "event": "submitted",
+      "outcome": "complete"
+    },
+    {
+      "at": "2026-10-10T06:17:34.411Z",
+      "by": "main",
+      "event": "closed",
+      "reason": "done",
+      "summary": "Lead-authored ec97a14 + e62aee3 (scripts/checks/base64-a.mjs): 11 browser checks for Base64 File default names (.txt/.json/.html/.tiff) and image-preview gating (HEIC/TIFF/PSD no <img>), PNG controls. Proven discriminating: 9 FAILs against a 6c32772^ build. Evidence: main re-ran pnpm check (339/339 tests, smoke OK) + pnpm browser (OK, 0 console/CSP) exit 0; pushed d2c3820..20d84af, CI run 38030245435 success. Independent review: claude:opus reviewer pass_with_findings; follow-up delta reviewed by main."
     }
   ],
-  "rev": 1,
+  "rev": 4,
   "id": "t-9d12",
   "title": "Thêm browser-check cho hành vi MIME mới của Base64 ↔ File",
-  "status": "open",
+  "status": "closed",
   "createdBy": "main",
   "createdAt": "2026-10-10T04:19:58.275Z",
-  "updatedAt": "2026-10-10T04:19:58.275Z"
+  "updatedAt": "2026-10-10T06:17:34.411Z"
 }

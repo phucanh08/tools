@@ -12,19 +12,37 @@
   "assignee": null,
   "handoff": null,
   "verified": null,
-  "closed": null,
+  "closed": {
+    "at": "2026-10-10T06:17:36.291Z",
+    "by": "main",
+    "reason": "done",
+    "summary": "Implemented by lead (not main, despite the assignee field) in assignment alp-child-87e98eeb, commit f49fe8d: exported codePointCount from charset.ts and used it in Base64Charset instead of [...text].length; unit tests for surrogate pairs/lone surrogates. Reviewer (claude:opus) fuzzed 200k strings, 0 mismatches. Main re-ran pnpm check + browser exit 0; CI run 38030245435 success."
+  },
   "log": [
     {
       "at": "2026-10-10T04:20:00.180Z",
       "by": "main",
       "event": "created"
+    },
+    {
+      "at": "2026-10-10T05:20:30.505Z",
+      "by": "main",
+      "event": "started",
+      "to": "main"
+    },
+    {
+      "at": "2026-10-10T06:17:36.291Z",
+      "by": "main",
+      "event": "closed",
+      "reason": "done",
+      "summary": "Implemented by lead (not main, despite the assignee field) in assignment alp-child-87e98eeb, commit f49fe8d: exported codePointCount from charset.ts and used it in Base64Charset instead of [...text].length; unit tests for surrogate pairs/lone surrogates. Reviewer (claude:opus) fuzzed 200k strings, 0 mismatches. Main re-ran pnpm check + browser exit 0; CI run 38030245435 success."
     }
   ],
-  "rev": 1,
+  "rev": 3,
   "id": "t-a363",
   "title": "Đếm code point ở Base64Charset không cần tạo mảng",
-  "status": "open",
+  "status": "closed",
   "createdBy": "main",
   "createdAt": "2026-10-10T04:20:00.180Z",
-  "updatedAt": "2026-10-10T04:20:00.180Z"
+  "updatedAt": "2026-10-10T06:17:36.291Z"
 }

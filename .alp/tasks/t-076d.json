@@ -12,19 +12,37 @@
   "assignee": null,
   "handoff": null,
   "verified": null,
-  "closed": null,
+  "closed": {
+    "at": "2026-10-10T06:17:38.888Z",
+    "by": "main",
+    "reason": "done",
+    "summary": "Implemented by lead (not main, despite the assignee field) in assignment alp-child-87e98eeb, commits cae735a + 20d84af. \"Decode as\" already offered UTF-16LE/BE, so added a hint instead: utf16CjkAlternatives shows \"It may also be UTF-16 without a BOM: as UTF-16LE it reads …\" plus a one-click button for low-confidence non-UTF-16 guesses; the detector is unchanged (300k fuzz, 0 diffs). Accepted trade-off: the hint also fires on short legacy CJK (documented, pinned by a test). Browser check fails on a pre-hint build. Main checked the screenshot, re-ran check+browser exit 0; CI 38030245435 success. Follow-ups: t-e015, t-8158, t-f209."
+  },
   "log": [
     {
       "at": "2026-10-10T04:20:02.484Z",
       "by": "main",
       "event": "created"
+    },
+    {
+      "at": "2026-10-10T05:20:30.835Z",
+      "by": "main",
+      "event": "started",
+      "to": "main"
+    },
+    {
+      "at": "2026-10-10T06:17:38.888Z",
+      "by": "main",
+      "event": "closed",
+      "reason": "done",
+      "summary": "Implemented by lead (not main, despite the assignee field) in assignment alp-child-87e98eeb, commits cae735a + 20d84af. \"Decode as\" already offered UTF-16LE/BE, so added a hint instead: utf16CjkAlternatives shows \"It may also be UTF-16 without a BOM: as UTF-16LE it reads …\" plus a one-click button for low-confidence non-UTF-16 guesses; the detector is unchanged (300k fuzz, 0 diffs). Accepted trade-off: the hint also fires on short legacy CJK (documented, pinned by a test). Browser check fails on a pre-hint build. Main checked the screenshot, re-ran check+browser exit 0; CI 38030245435 success. Follow-ups: t-e015, t-8158, t-f209."
     }
   ],
-  "rev": 1,
+  "rev": 3,
   "id": "t-076d",
   "title": "Cân nhắc tùy chọn \"UTF-16 (không BOM)\" trong UI Base64Charset",
-  "status": "open",
+  "status": "closed",
   "createdBy": "main",
   "createdAt": "2026-10-10T04:20:02.484Z",
-  "updatedAt": "2026-10-10T04:20:02.484Z"
+  "updatedAt": "2026-10-10T06:17:38.888Z"
 }

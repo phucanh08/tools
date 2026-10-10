@@ -1,0 +1,30 @@
+{
+  "description": "Phát hiện từ t-076d (reviewer, low): bấm nút \"Decode as UTF-16LE/BE\" thì gợi ý biến mất và focus rơi về <body>. Muốn sửa cần cho Select dùng chung (src/components/controls.tsx) nhận ref, rồi focus vào ô \"Decode as\" sau setDecodeAs.",
+  "type": "bug",
+  "priority": 4,
+  "labels": [],
+  "paths": [],
+  "parent": null,
+  "blockedBy": [],
+  "discoveredFrom": "t-076d",
+  "related": [],
+  "gates": [],
+  "assignee": null,
+  "handoff": null,
+  "verified": null,
+  "closed": null,
+  "log": [
+    {
+      "at": "2026-10-10T06:09:56.176Z",
+      "by": "main",
+      "event": "created"
+    }
+  ],
+  "rev": 1,
+  "id": "t-f209",
+  "title": "Giữ focus bàn phím sau khi bấm nút gợi ý UTF-16 ở Base64Charset",
+  "status": "open",
+  "createdBy": "main",
+  "createdAt": "2026-10-10T06:09:56.176Z",
+  "updatedAt": "2026-10-10T06:09:56.176Z"
+}
