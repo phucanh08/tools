@@ -9,14 +9,7 @@
   "discoveredFrom": null,
   "related": [],
   "gates": [],
-  "assignee": {
-    "agent": "lead",
-    "assignment": "alp-child-f950e6af-01ee-4634-ae26-d0652fb070cc",
-    "pid": 24834,
-    "pidStartedAt": 1791597627600,
-    "epoch": "01c59811-e25d-4f7d-90af-09fb53df91b2",
-    "since": "2026-10-10T02:19:11.551Z"
-  },
+  "assignee": null,
   "handoff": {
     "outcome": "complete",
     "summary": "t-34ae.1 is done: 8 new Base64 tools and the 2 nav tweaks, committed locally on main in 14 commits (fcff279..dc82dc7, base a5c5db2). Not pushed.\n\nTOOLS (route → page, lib):\n1. /base64/validate: Base64Validate.tsx, b64validate.ts. Validity, first invalid char (1-based code point, line:col, Select-it), variant (standard/url-safe/MIME/data URL+MIME), normalize (alphabet, padding, wrap 0/64/76), repairs with a Format/Repair/Data-loss list.\n2. /base64/media: Base64Media.tsx, media-sniff.ts. Magic bytes for ~40 types. Preview only the sniffed type via revoked blob: URLs. SVG only as <img>; HTML/unknown download-only. PDF opt-in iframe. Mismatch warning against the declared data-URL type. Download with the right extension.\n3. /base64/image: ImageToBase64.tsx, image-snippets.ts. Data URI, CSS, HTML <img> (escaped alt + parsed width/height), Markdown, JSON, raw Base64. Original/encoded size and % overhead.\n4. /base64/basic-auth: BasicAuth.tsx, basic-auth.ts. Build/decode, UTF-8 (ISO-8859-1 fallback), ':' in user warning, curl examples.\n5. /base64/charset: Base64Charset.tsx, charset.ts. 16 charsets. Decode via TextDecoder; ISO-8859-1 is true Latin-1. Encoder uses reverse tables built lazily from TextDecoder (single-byte 0x00–FF; multi-byte lead/trail pairs, WHATWG encoder rules). Justification: correct by construction, no shipped tables (12.6 kB chunk), 7–13 ms first use. Unmappable chars: replace-with-? warning or error. Windows-1258 decomposes to base + combining mark on encode and is NFC on decode. Auto-detect: BOM → UTF-8 → UTF-16 → scored legacy guess, with an override.\n6. /base64/compress: Base64Compress.tsx, compress.ts. gzip/zlib/raw deflate via CompressionStream; header auto-detect; sizes/ratio; 64 MB cap enforced between 32 KiB input slices.\n7. /base64/base-n: BaseN.tsx, base-n.ts. Base32, base32hex, Base58 (Bitcoin), Ascii85, Z85, Base36 (one '0' per leading 0x00 byte, documented). Text or hex in and out, strict decoders.\n8. /base64/mime: MimeUuencode.tsx, mime.ts + uuencode.ts. 76-col CRLF wrap/unwrap; uuencode/uudecode with begin/mode/filename, '`' zero, padding, length-char validation, safe download name.\nNav: aria-label \"Sidebar\" → \"Tool menu\" (App.tsx); flyout bridge 16 → 12px (styles.css). Shared wiring: meta/icons/lazy registry entries; scripts/checks/base64-{a,b}.mjs hooks in browser-check; CSP gains media-src 'self' data: blob: (needed for audio/video blob previews).\n\nWHO DID WHAT\n- Lead (me): scaffold and nav commits fcff279 + 3b59218 (browser-check hook wiring, CSP media-src); merges; commit split. Fix-round edit: loosened the charset perf-test bound 250 → 1500 ms in charset.test.ts:91 (CI flake risk). Ran smoke/browser and reviewed the screenshots.\n- Peers: Codex was paused (usage limit until 05:35Z), so I switched to Claude per user preference. Group A = claude:opus worktree alp-child-fb121d64 (tools 1–4). Group B = claude:opus worktree alp-child-d3b6f701 (tools 5–8). Fix round = claude:opus in the shared checkout, alp-child-80c17c00.\n- Reviews: independent claude:fable (different model; Codex unavailable). Group A pass_with_findings (alp-child-a8984e41); group B pass_with_findings (alp-child-047ab7ab). No critical or high findings. All 6 medium and 7 of 8 low findings were fixed in 11e761b/dc82dc7. The PDF iframe sandbox was not applied, with evidence: Chrome blocks its PDF viewer in sandboxed frames. I ACCEPT all peer candidates after diff spot-checks plus full verification.\n- The fix-round commits were not independently re-reviewed (only my spot check plus tests, including fail-before checks by the peer).\n\nMain's new Codex usage rule (prefer above 50%, choose by fit at 10–50%, none at 10% or less) was noted; this task stayed on Claude because Codex was paused.\n\nTEST VECTORS: RFC 4648 §10 (base64/base32/base32hex); RFC 7617 (Aladdin:open sesame → QWxhZGRpbjpvcGVuIHNlc2FtZQ==, test:123£ → dGVzdDoxMjPCow==); Bitcoin Core base58_encode_decode.json; Wikipedia Ascii85 (Man → 9jqo^, Leviathan) cross-checked with CPython; ZeroMQ RFC 32 Z85 (864FD26FB559F75B → HelloWorld); Java Long.MAX_VALUE base36; Wikipedia uuencode (Cat → #0V%T) + CPython b2a_uu; WHATWG Encoding index bytes; Node zlib interop + `gzip -n` vector; PNG/JPEG/RIFF/ftyp/EBML/ID3/MPEG frame specs; WHATWG MIME Sniffing §6.",
@@ -113,7 +106,12 @@
     "at": "2026-10-10T03:08:59.371Z"
   },
   "verified": null,
-  "closed": null,
+  "closed": {
+    "at": "2026-10-10T03:22:18.270Z",
+    "by": "main",
+    "reason": "done",
+    "summary": "8 Base64 tools are live (/base64/validate, media, image, basic-auth, charset, compress, base-n, mime), along with the nav tweaks, in 14 commits fcff279..dc82dc7 by lead and claude:opus peers (Codex was paused). Main verified: typecheck/lint OK, 310/310 tests, build (entry 268.15 kB, tools lazy), smoke and browser OK (35 routes, 0 errors); CI deploy succeeded and /base64/base-n returns 200. Reviews by claude:fable: groups A and B pass_with_findings, with medium findings fixed. Re-review of the fixes: pass_with_findings (PDF iframe: keep). 1 medium + 4 low items remain, tracked in a follow-up task."
+  },
   "log": [
     {
       "at": "2026-10-10T02:18:57.566Z",
@@ -132,13 +130,20 @@
       "by": "lead",
       "event": "submitted",
       "outcome": "complete"
+    },
+    {
+      "at": "2026-10-10T03:22:18.270Z",
+      "by": "main",
+      "event": "closed",
+      "reason": "done",
+      "summary": "8 Base64 tools are live (/base64/validate, media, image, basic-auth, charset, compress, base-n, mime), along with the nav tweaks, in 14 commits fcff279..dc82dc7 by lead and claude:opus peers (Codex was paused). Main verified: typecheck/lint OK, 310/310 tests, build (entry 268.15 kB, tools lazy), smoke and browser OK (35 routes, 0 errors); CI deploy succeeded and /base64/base-n returns 200. Reviews by claude:fable: groups A and B pass_with_findings, with medium findings fixed. Re-review of the fixes: pass_with_findings (PDF iframe: keep). 1 medium + 4 low items remain, tracked in a follow-up task."
     }
   ],
-  "rev": 3,
+  "rev": 4,
   "id": "t-34ae.1",
   "title": "Code 8 tool Base64 mới + 2 chỉnh nhỏ từ review nav",
-  "status": "review",
+  "status": "closed",
   "createdBy": "main",
   "createdAt": "2026-10-10T02:18:57.566Z",
-  "updatedAt": "2026-10-10T03:08:59.371Z"
+  "updatedAt": "2026-10-10T03:22:18.270Z"
 }

@@ -1,0 +1,95 @@
+{
+  "description": "Từ đợt re-review (claude:fable): (M) charset.test.ts:91, ngưỡng thời gian 1500 ms vẫn pass với code cũ, nên bỏ hoặc so với baseline TextEncoder; (L) media-sniff.ts:220, text UTF-16 có U+FFFD bị nhận nhầm là audio/mpeg, sửa bằng TextDecoder fatal; (L) uuencode.ts:106, cảnh báo thiếu ký tự báo nhầm, sửa lại lời cảnh báo; (L) Base64Charset.tsx:52, đưa bytesToBase64 và đếm code point vào useMemo; (L) Base64Media.tsx:247, BlobFrame cố định 'application/pdf'. Lead đề xuất thêm: gộp sniffMime của encoding.ts với media-sniff; bọc try/catch cho từng module trong browser-check; giới hạn kích thước hoặc lấy mẫu khi detectCharset chạy trên input lớn; nhận dạng UTF-16 không BOM cho văn bản CJK.",
+  "type": "chore",
+  "priority": 3,
+  "labels": [],
+  "paths": [],
+  "parent": "t-34ae",
+  "blockedBy": [],
+  "discoveredFrom": "t-34ae.1",
+  "related": [],
+  "gates": [],
+  "assignee": null,
+  "handoff": {
+    "outcome": "complete",
+    "summary": "t-34ae.2 is done. All 9 items are implemented across 5 local commits on the current branch (175bdb6..a89fa6e), not pushed. Lead wrote everything directly as the single writer; no peer wrote code.\n\nCommits:\n- 6c32772: items 2, 3, 6\n- 38eae9d: items 1, 8, 9\n- 772c8de: items 4, 5, 7\n- b40a6a1: fix for the reviewer's fail on item 9\n- a89fa6e: tests and docstring for the re-review findings\n\nPer item:\n1. DONE. charset.test.ts: the 1500 ms bound is replaced by a deterministic count of `TextEncoder.prototype.encode` calls, with the spy restored in `finally`. Against the old code it fails with 1,050,000 calls, against the new code it passes with 1.\n2. DONE. media-sniff.ts `isUtf16Text` uses `TextDecoder` with `fatal` and `stream:true`, so a genuine U+FFFD stays text and a lone surrogate is not text. Tests in media-sniff.test.ts cover the old audio/mpeg case `'Hi � there'` and a surrogate pair cut at the 4 KB boundary.\n3. DONE. uuencode.ts warns only when characters that carry data bits are missing (`ceil(count*4/3)`), not when stripped padding is missing. The new message names both causes: stripped trailing spaces or truncation. Tests are in uuencode.test.ts.\n4. DONE. Base64Charset.tsx: the Base64 output and the code-point count are in `useMemo`.\n5. DONE, with an interpretation note. The task record's Vietnamese text, \"BlobFrame cố định 'application/pdf'\", means pin it to application/pdf. The brief's English said the opposite (\"is hardcoded → use detected\"). The code already passed the detected type, so BlobFrame now always uses a `PDF_MIME` constant as defense-in-depth for the unsandboxed iframe. It is reached only for kind 'pdf', so behavior is the same.\n6. DONE. `encoding.sniffMime` and `extensionForMime` are removed. Base64File uses media-sniff's `sniffMimeType`/`extensionFor`/`mediaType`. Two visible changes: the image preview is gated on `mediaType().preview==='image'`, so HEIC/TIFF no longer show a broken preview, and default filenames follow the richer detected type (.txt/.json/.html instead of .bin).\n7. DONE. browser-check.mjs runs each check module in its own try/catch, reports errors via `fail()`, and the remaining modules still run.\n8. DONE. charset.ts `detectCharset`: the heuristics read a 64 KB prefix (`DETECT_SAMPLE_BYTES`), with the legacy scoring using `stream:true`. The BOM, ASCII-only and strict UTF-8 checks and the parity check still use the whole input. A low-confidence result notes when it came from a sample.\n9. DONE (conservative). `guessUtf16Cjk` fires only when all of these hold:\n   - the input has a C0 byte other than tab/LF/CR;\n   - every code unit is CJK or printable ASCII;\n   - at least 2 anchor units (ASCII, U+3000-301F or U+FFxx);\n   - at least 4 CJK units, making up at least 30%;\n   - exactly one byte order fits.\n   It is never run on all-ASCII input. It misses short text and text with fewer than two punctuation/space/ASCII units.\n\nReview history:\n- First review (claude:opus): FAIL on item 9. ASCII + form feed was detected as UTF-16BE, and legacy CJK + a stray control byte as UTF-16. Fixed in b40a6a1.\n- Re-review (claude:opus): PASS_WITH_FINDINGS. No regression against base in 1.4M fuzzed realistic documents or the earlier probes. Its findings (1 medium test-coverage, 2 low docstring) were fixed in a89fa6e.\n\nModel switch: I tried codex:gpt-6-astra for the reviewer first, but Codex is paused on its usage limit until 2026-10-10T05:35Z, so both reviews ran on claude:opus.",
+    "candidate": [
+      "6c32772 fix(base64): single MIME sniffer, UTF-16 U+FFFD text, uuencode short-line warning — src/lib/media-sniff.ts, src/lib/media-sniff.test.ts, src/lib/uuencode.ts, src/lib/uuencode.test.ts, src/lib/encoding.ts, src/lib/encoding.test.ts, src/tools/base64/Base64File.tsx (items 2,3,6)",
+      "38eae9d fix(charset): sample large inputs, detect BOM-less UTF-16 CJK, deterministic perf test — src/lib/charset.ts, src/lib/charset.test.ts (items 1,8,9)",
+      "772c8de refactor(base64): memoize charset output, pin PDF frame type, isolate browser checks — src/tools/base64/Base64Charset.tsx, src/tools/base64/Base64Media.tsx, scripts/browser-check.mjs (items 4,5,7)",
+      "b40a6a1 fix(charset): keep stray control bytes from tipping text into UTF-16 CJK — src/lib/charset.ts, src/lib/charset.test.ts, src/lib/media-sniff.test.ts, src/lib/encoding.test.ts (fix for the reviewer's fail on item 9 + low findings)",
+      "a89fa6e test(charset): cover the GBK/EUC-KR control-byte cases; document residual risk — src/lib/charset.ts, src/lib/charset.test.ts (re-review findings)"
+    ],
+    "scope": [
+      "Base64 tool libs/tests: src/lib/{charset,media-sniff,uuencode,encoding}.ts + tests",
+      "src/tools/base64/{Base64Charset,Base64Media,Base64File}.tsx",
+      "scripts/browser-check.mjs",
+      "Not touched: nav/layout, CI, package.json/deps, other tools, .alp/tasks (t-34ae.1.json modified and t-34ae.2.json untracked are main's, left uncommitted)"
+    ],
+    "verification": [
+      "Final run at HEAD a89fa6e: `pnpm check` (typecheck && lint && test && build && smoke) exit 0. Test Files 15 passed (15); Tests 315 passed (315); vite ✓ built in 308ms; smoke: OK (35 tool routes)",
+      "Final run at a89fa6e: `pnpm browser` exit 0. browser-check: OK (35 tool routes + home + 404, 0 console/CSP errors)",
+      "Same check + browser also passed at 772c8de and b40a6a1",
+      "Tests checked against old code: item 1 spy test fails on dc82dc7^ ('expected encode to be called 1 times, but got 1050000'); item 2 media-sniff test fails on the pre-change media-sniff.ts; the control-byte tests fail on 772c8de (utf-16be) and pass at HEAD",
+      "Reviewer 1 (claude:opus, alp-child-03bcee92...): FAIL. Criteria 1-8 pass, 9 fails (ASCII/legacy + control byte detected as UTF-16) → fixed in b40a6a1",
+      "Reviewer 2 (claude:opus, alp-child-33a5ebf1...): PASS_WITH_FINDINGS. 0 changes vs base in 10,255/56,376/576 probe variants, 1.1M fuzzed docs and 300k TSV/CSV docs; 302/302 src/lib tests. Findings: medium (GBK/EUC-KR tests did not cover the failing inputs) and 2 low docstring → all fixed in a89fa6e. No further review after a89fa6e (tests + comments only)"
+    ],
+    "risks": [
+      "Item 9 still has a synthetic-only false positive. Legacy text plus a stray control byte, plus two '0'-next-to-tab/LF anchors at the right offsets with no CRLF, is still detected as BOM-less UTF-16LE: 222 of 26,136 reviewer-constructed inputs, 0 of 1.4M realistic ones. The guess is low confidence and the user can override it. This is documented in the docstring.",
+      "Item 9 recall: single-sentence UTF-16 CJK text with only one punctuation mark and no spaces, and pure ideographs, are not detected (by design, conservative). Base never detected BOM-less CJK, so this is not a regression.",
+      "Item 3: lines whose trailing zero-valued data characters were stripped (e.g. an 'M' line ending in zero bytes) now get a neutral warning where the old code said nothing; the message says it may be stripped spaces.",
+      "Item 6: Base64File's default download names and image-preview gating changed (more specific extensions; HEIC/TIFF/PSD no longer shown as a broken <img>). Not covered by screenshots.",
+      "a89fa6e (tests + docstring only) was not independently re-reviewed after the re-review; the full check and browser check pass on it.",
+      "Item 5 follows the Vietnamese task text (pin application/pdf), not the brief's English (use the detected type); behavior is identical because only PDFs reach BlobFrame."
+    ],
+    "discovered": [
+      "Base64File has no browser-check coverage of the new MIME behavior (filename extension for text/json/html and the preview gate); consider adding it to scripts/checks/base64-*.mjs.",
+      "Base64Charset's code-point count still spreads the whole decoded string into an array (useMemo now, but O(n) memory); a counting loop like charset.ts codePointCount could be exported and reused if large inputs matter.",
+      "Possible follow-up for item 9 recall: an opt-in 'UTF-16 (no BOM)' hint in the Base64Charset UI, instead of loosening the heuristic, for single-sentence CJK text."
+    ],
+    "ownership": "Lead implemented everything and wrote all 5 commits in the shared checkout; no peer wrote code. Both reviewers were read-only and left probes only in $TMPDIR. Board claim p-02e80c71 has been released. Not pushed; main verifies, pushes and watches CI. .alp/tasks files were left untouched and uncommitted for main.",
+    "agent": "lead",
+    "at": "2026-10-10T03:56:47.164Z"
+  },
+  "verified": null,
+  "closed": {
+    "at": "2026-10-10T04:19:52.800Z",
+    "by": "main",
+    "reason": "done",
+    "summary": "Done all 9 items (5 review findings + 4 lead proposals) in 5 commits 6c32772..a89fa6e, pushed to main. Evidence: main re-ran pnpm check (typecheck, lint, 315/315 tests, build, smoke 35 routes) and pnpm browser (0 console/CSP errors) → exit 0; CI deploy run 38022648740 success. Independent review: claude:opus round 1 FAIL item 9 → fixed b40a6a1; round 2 PASS_WITH_FINDINGS → fixed a89fa6e (tests + docstring, not re-reviewed). Remaining risk: BOM-less UTF-16 CJK heuristic still has a synthetic-only false positive (low confidence, user can override)."
+  },
+  "log": [
+    {
+      "at": "2026-10-10T03:22:22.845Z",
+      "by": "main",
+      "event": "created"
+    },
+    {
+      "at": "2026-10-10T03:29:25.663Z",
+      "by": "main",
+      "event": "started",
+      "to": "lead",
+      "assignment": "alp-child-37ecce84-d412-45e1-95a3-55633de27b76"
+    },
+    {
+      "at": "2026-10-10T03:56:47.164Z",
+      "by": "lead",
+      "event": "submitted",
+      "outcome": "complete"
+    },
+    {
+      "at": "2026-10-10T04:19:52.800Z",
+      "by": "main",
+      "event": "closed",
+      "reason": "done",
+      "summary": "Done all 9 items (5 review findings + 4 lead proposals) in 5 commits 6c32772..a89fa6e, pushed to main. Evidence: main re-ran pnpm check (typecheck, lint, 315/315 tests, build, smoke 35 routes) and pnpm browser (0 console/CSP errors) → exit 0; CI deploy run 38022648740 success. Independent review: claude:opus round 1 FAIL item 9 → fixed b40a6a1; round 2 PASS_WITH_FINDINGS → fixed a89fa6e (tests + docstring, not re-reviewed). Remaining risk: BOM-less UTF-16 CJK heuristic still has a synthetic-only false positive (low confidence, user can override)."
+    }
+  ],
+  "rev": 4,
+  "id": "t-34ae.2",
+  "title": "Dọn các góp ý review còn lại của tool Base64",
+  "status": "closed",
+  "createdBy": "main",
+  "createdAt": "2026-10-10T03:22:22.845Z",
+  "updatedAt": "2026-10-10T04:19:52.800Z"
+}

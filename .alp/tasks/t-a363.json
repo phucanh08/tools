@@ -1,0 +1,30 @@
+{
+  "description": "Base64Charset đếm code point bằng [...dec.text].length (đã có useMemo nhưng vẫn tốn bộ nhớ O(n)). Nếu cần xử lý input lớn, export một vòng lặp đếm kiểu codePointCount từ charset.ts rồi dùng lại ở đây.",
+  "type": "chore",
+  "priority": 4,
+  "labels": [],
+  "paths": [],
+  "parent": null,
+  "blockedBy": [],
+  "discoveredFrom": "t-34ae.2",
+  "related": [],
+  "gates": [],
+  "assignee": null,
+  "handoff": null,
+  "verified": null,
+  "closed": null,
+  "log": [
+    {
+      "at": "2026-10-10T04:20:00.180Z",
+      "by": "main",
+      "event": "created"
+    }
+  ],
+  "rev": 1,
+  "id": "t-a363",
+  "title": "Đếm code point ở Base64Charset không cần tạo mảng",
+  "status": "open",
+  "createdBy": "main",
+  "createdAt": "2026-10-10T04:20:00.180Z",
+  "updatedAt": "2026-10-10T04:20:00.180Z"
+}

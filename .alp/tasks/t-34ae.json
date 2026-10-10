@@ -14,19 +14,31 @@
   "assignee": null,
   "handoff": null,
   "verified": null,
-  "closed": null,
+  "closed": {
+    "at": "2026-10-10T04:20:03.873Z",
+    "by": "main",
+    "reason": "done",
+    "summary": "Both children closed: t-34ae.1 (8 Base64 tools, live, CI green) and t-34ae.2 (review cleanup, commits 6c32772..a89fa6e, CI run 38022648740 success). Follow-ups recorded as separate tasks discovered from t-34ae.2."
+  },
   "log": [
     {
       "at": "2026-10-10T02:13:06.343Z",
       "by": "main",
       "event": "created"
+    },
+    {
+      "at": "2026-10-10T04:20:03.873Z",
+      "by": "main",
+      "event": "closed",
+      "reason": "done",
+      "summary": "Both children closed: t-34ae.1 (8 Base64 tools, live, CI green) and t-34ae.2 (review cleanup, commits 6c32772..a89fa6e, CI run 38022648740 success). Follow-ups recorded as separate tasks discovered from t-34ae.2."
     }
   ],
-  "rev": 1,
+  "rev": 2,
   "id": "t-34ae",
   "title": "Bổ sung 8 tool Base64 (tham khảo base64.guru)",
-  "status": "open",
+  "status": "closed",
   "createdBy": "main",
   "createdAt": "2026-10-10T02:13:06.343Z",
-  "updatedAt": "2026-10-10T02:13:06.343Z"
+  "updatedAt": "2026-10-10T04:20:03.873Z"
 }

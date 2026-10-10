@@ -1,0 +1,30 @@
+{
+  "description": "Base64File đã chuyển sang dùng media-sniff (t-34ae.2, commit 6c32772): đuôi file mặc định giờ là .txt/.json/.html thay vì .bin, và HEIC/TIFF/PSD không còn được hiện preview ảnh. Hành vi này chưa có browser-check nào phủ. Cần thêm kiểm tra vào scripts/checks/base64-*.mjs.",
+  "type": "chore",
+  "priority": 3,
+  "labels": [],
+  "paths": [],
+  "parent": null,
+  "blockedBy": [],
+  "discoveredFrom": "t-34ae.2",
+  "related": [],
+  "gates": [],
+  "assignee": null,
+  "handoff": null,
+  "verified": null,
+  "closed": null,
+  "log": [
+    {
+      "at": "2026-10-10T04:19:58.275Z",
+      "by": "main",
+      "event": "created"
+    }
+  ],
+  "rev": 1,
+  "id": "t-9d12",
+  "title": "Thêm browser-check cho hành vi MIME mới của Base64 ↔ File",
+  "status": "open",
+  "createdBy": "main",
+  "createdAt": "2026-10-10T04:19:58.275Z",
+  "updatedAt": "2026-10-10T04:19:58.275Z"
+}
