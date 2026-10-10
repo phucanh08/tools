@@ -117,6 +117,9 @@ export async function run({ page, base, fail, ok }) {
     const decodeAs = await page.getByLabel('Decode as', { exact: true }).inputValue()
     if (ja !== UTF16_JA || decodeAs !== 'utf-16le') fail(`charset: UTF-16 hint click -> "${ja}" / ${decodeAs}`)
     else ok('charset: UTF-16LE hint for short Japanese, one click decodes it')
+    const focused = await page.getByLabel('Decode as', { exact: true }).evaluate((el) => el === document.activeElement)
+    if (!focused) fail('charset: UTF-16 hint click did not focus the Decode as select')
+    else ok('charset: UTF-16 hint click focuses the Decode as select')
   }
   await page.getByLabel('Decode as', { exact: true }).selectOption('auto')
 

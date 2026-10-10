@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from 'react'
+import { useId, type ReactNode, type Ref } from 'react'
 
 export interface Option<T extends string | number> {
   value: T
@@ -67,11 +67,13 @@ export function Checkbox({
 }
 
 export function Select<T extends string | number>({
+  ref,
   label,
   value,
   options,
   onChange,
 }: {
+  ref?: Ref<HTMLSelectElement>
   label: string
   value: T
   options: Option<T>[]
@@ -84,6 +86,7 @@ export function Select<T extends string | number>({
         {label}
       </label>
       <select
+        ref={ref}
         id={id}
         value={String(value)}
         onChange={(e) => {

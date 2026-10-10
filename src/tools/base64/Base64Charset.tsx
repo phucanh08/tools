@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Checkbox, Segmented, Select, Toolbar } from '../../components/controls'
 import { ErrorMessage, Notice } from '../../components/Messages'
 import { TextPane } from '../../components/TextPane'
@@ -34,6 +34,7 @@ export default function Base64Charset() {
   const [input, setInput] = useState('')
   const [charset, setCharset] = useState<CharsetId>('utf-8')
   const [decodeAs, setDecodeAs] = useState<CharsetId | 'auto'>('auto')
+  const decodeAsRef = useRef<HTMLSelectElement>(null)
   const [onUnmappable, setOnUnmappable] = useState<OnUnmappable>('replace')
   const [bom, setBom] = useState(false)
   const [urlSafe, setUrlSafe] = useState(false)
@@ -97,6 +98,7 @@ export default function Base64Charset() {
           <Select label="Charset" value={charset} onChange={setCharset} options={CHARSET_OPTIONS} />
         ) : (
           <Select
+            ref={decodeAsRef}
             label="Decode as"
             value={decodeAs}
             onChange={setDecodeAs}
@@ -175,7 +177,14 @@ export default function Base64Charset() {
               {utf16Hints.map((h, i) => (
                 <span key={h.charset}>
                   {i > 0 ? ' or' : ''} as {charsetInfo(h.charset).label} it reads “{h.preview}”{' '}
-                  <button type="button" className="btn btn-small" onClick={() => setDecodeAs(h.charset)}>
+                  <button
+                    type="button"
+                    className="btn btn-small"
+                    onClick={() => {
+                      setDecodeAs(h.charset)
+                      decodeAsRef.current?.focus()
+                    }}
+                  >
                     Decode as {charsetInfo(h.charset).label}
                   </button>
                 </span>
