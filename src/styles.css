@@ -852,3 +852,46 @@ td > .badge:first-child {
 
 .input:hover, select:hover, .textarea:hover { border-color: var(--accent); }
 .table-wrap { border-radius: 8px; }
+
+/* ---- base64 group A tools ---- */
+.b64-changes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+.b64-changes .badge {
+  margin: 0 0.4rem 0 0;
+}
+.b64-change-repair {
+  background: var(--info-soft);
+  color: var(--accent);
+}
+.b64-change-lossy {
+  background: var(--bad-soft);
+  color: var(--bad);
+}
+.media-preview-audio {
+  width: 100%;
+  max-width: 480px;
+}
+.media-preview-video {
+  max-width: 100%;
+  max-height: 480px;
+  background: #000;
+  border-radius: var(--radius-sm);
+}
+.img-snippets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+@media (max-width: 1000px) {
+  .img-snippets {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
