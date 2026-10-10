@@ -10,6 +10,10 @@
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { chromium } from 'playwright-core'
 import { startPreview } from './preview-server.mjs'
+import * as base64A from './checks/base64-a.mjs'
+import * as base64B from './checks/base64-b.mjs'
+
+const CHECK_MODULES = [base64A, base64B]
 
 const CHROME =
   process.env.CHROME_PATH ||
@@ -187,6 +191,9 @@ async function interactions(page, log) {
   if (!priv.includes('BEGIN PRIVATE KEY')) fail('keypair: private key PEM missing')
   else ok(`keypair -> ${(await page.getByLabel('Algorithm').inputValue())} PEM public + private generated`)
 
+  // 6. Per-tool checks contributed by scripts/checks/*.mjs.
+  for (const mod of CHECK_MODULES) await mod.run({ page, base, fail, ok })
+
   const csp = await cspOf(page)
   if (csp.length) fail(`interactions: CSP violations: ${csp.join('; ')}`)
   if (log.length) fail(`interactions: ${log.join(' | ')}`)
@@ -201,7 +208,7 @@ async function screenshots(browser) {
   for (const scheme of ['light', 'dark']) {
     const ctx = await newContext(browser, { colorScheme: scheme })
     const page = await ctx.newPage()
-    for (const [name, path] of [
+    for (const [name, path, setup] of [
       ['home', '/'],
       ['json-format', '/json/format'],
       ['crypto-aes', '/crypto/aes'],
@@ -209,6 +216,7 @@ async function screenshots(browser) {
       ['base64-text', '/base64/text'],
       ['json-tree', '/json/tree'],
       ['json-diff', '/json/diff'],
+      ...CHECK_MODULES.flatMap((m) => m.shots),
     ]) {
       await page.goto(base + path, { waitUntil: 'networkidle' })
       if (name === 'json-format') await page.getByRole('button', { name: /sample/i }).first().click().catch(() => {})
@@ -219,6 +227,7 @@ async function screenshots(browser) {
         const rows = await page.locator('.diff-table tbody tr').count()
         if (rows !== 4) fail(`json diff: expected 4 difference rows, got ${rows}`)
       }
+      if (setup) await setup(page)
       const file = `${SHOTS}/${name}-${scheme}.png`
       await page.screenshot({ path: file, fullPage: true })
       shots.push(file)
