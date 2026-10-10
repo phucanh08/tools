@@ -512,15 +512,18 @@ const CJK_RANGES: [number, number][] = [
 
 /**
  * UTF-16 CJK text without a BOM. Deliberately conservative: it misses short
- * text and pure ideographs without punctuation, and only fires when:
+ * text and text with fewer than two punctuation/space/ASCII units (e.g. one
+ * sentence ending in "。" with no spaces), and only fires when:
  *   - the bytes contain a C0 control byte other than tab/LF/CR (a cheap pre-check;
  *     Latin-1, UTF-8 and legacy CJK text practically never contain one);
  *   - every code unit is CJK (ranges above) or printable ASCII/tab/LF/CR;
  *   - at least two units are ASCII (high byte 0, e.g. a space 00 20), CJK
  *     punctuation U+3000-U+301F ("、" is 30 01) or fullwidth forms U+FFxx ("，").
  *     Legacy double-byte text read as UTF-16 gives units >= 0x8100 or Hangul
- *     (no legacy byte is 0xFF), so at most a stray control byte at an edge
- *     produces one such unit;
+ *     (no legacy byte is 0xFF); it yields anchors only where a control byte or
+ *     the digit "0" (0x30) next to tab/LF/control bytes lines up at the right
+ *     offset. Inputs built that way can still pass (low confidence; the user can
+ *     override), but none of 1.4 M fuzzed realistic documents did;
  *   - at least 4 code units, and 30% of them, are CJK;
  *   - exactly one byte order fits. Otherwise the input is left to the legacy guess.
  * All-ASCII input never gets here: pairs of ASCII letters read as ideographs.
