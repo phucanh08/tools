@@ -437,15 +437,26 @@ export interface Detection {
 const GUESS_ORDER: CharsetId[] = ['shift_jis', 'euc-jp', 'gbk', 'big5', 'euc-kr', 'windows-1252', 'windows-1258', 'windows-1251', 'koi8-r']
 
 /**
- * Guesses the charset of bytes: BOM first, then strict UTF-8, then a UTF-16
- * zero-byte pattern, then a score over common legacy charsets. Guesses can be
- * wrong for short inputs; callers should let the user override.
+ * The heuristics (UTF-16 patterns, legacy-charset scores) only look at this
+ * prefix: scoring costs ~0.3 s per MB, and 64 KB of text is plenty to decide.
+ * The BOM, ASCII and strict UTF-8 checks still cover the whole input.
+ */
+export const DETECT_SAMPLE_BYTES = 64 * 1024
+
+/**
+ * Guesses the charset of bytes: BOM first, then strict UTF-8, then UTF-16
+ * patterns, then a score over common legacy charsets. Guesses can be wrong for
+ * short inputs; callers should let the user override.
  */
 export function detectCharset(bytes: Uint8Array): Detection {
   const bom = detectBom(bytes)
   if (bom) return { charset: bom.charset, reason: `${charsetInfo(bom.charset).label} byte order mark`, confidence: 'high' }
+  const sampled = bytes.length > DETECT_SAMPLE_BYTES
+  const sample = sampled ? bytes.subarray(0, DETECT_SAMPLE_BYTES) : bytes
+  // UTF-16 always has an even length; check the whole input, not the (even) sample.
+  const even = bytes.length % 2 === 0
   if (bytes.every((b) => b < 0x80)) {
-    const utf16 = guessUtf16(bytes)
+    const utf16 = even ? (guessUtf16(sample) ?? guessUtf16Cjk(sample)) : null
     if (utf16) return utf16
     return { charset: 'utf-8', reason: 'ASCII only (valid UTF-8)', confidence: 'high' }
   }
@@ -455,25 +466,26 @@ export function detectCharset(bytes: Uint8Array): Detection {
   } catch {
     // Not UTF-8: fall through to heuristics.
   }
-  const utf16 = guessUtf16(bytes)
+  const utf16 = even ? (guessUtf16(sample) ?? guessUtf16Cjk(sample)) : null
   if (utf16) return utf16
   let best: { charset: CharsetId; score: number } | null = null
   for (const charset of GUESS_ORDER) {
-    const score = scoreCharset(bytes, charset)
+    const score = scoreCharset(sample, charset, sampled)
     if (score !== null && (best === null || score > best.score)) best = { charset, score }
   }
   const charset = best?.charset ?? 'windows-1252'
-  return { charset, reason: `best guess (not UTF-8; looks like ${charsetInfo(charset).label})`, confidence: 'low' }
+  const from = sampled ? `, from the first ${DETECT_SAMPLE_BYTES / 1024} KB` : ''
+  return { charset, reason: `best guess (not UTF-8; looks like ${charsetInfo(charset).label}${from})`, confidence: 'low' }
 }
 
 /**
  * UTF-16 without a BOM, from the share of zero bytes in one half of each code
  * unit. Only works for mostly Latin-script text (ASCII/Latin-1 code points have
- * a zero high byte); UTF-16 CJK, Cyrillic or Vietnamese text without a BOM is
- * not recognized and falls through to the legacy-charset guess.
+ * a zero high byte); CJK text is handled by guessUtf16Cjk. The caller checks
+ * that the input length is even.
  */
 function guessUtf16(bytes: Uint8Array): Detection | null {
-  if (bytes.length < 4 || bytes.length % 2 !== 0) return null
+  if (bytes.length < 4) return null
   let zeroEven = 0
   let zeroOdd = 0
   for (let i = 0; i < bytes.length; i += 2) {
@@ -488,6 +500,51 @@ function guessUtf16(bytes: Uint8Array): Detection | null {
   return null
 }
 
+/** CJK punctuation + kana, CJK unified ideographs, Hangul syllables, fullwidth forms. */
+const CJK_RANGES: [number, number][] = [
+  [0x3000, 0x30ff],
+  [0x4e00, 0x9fff],
+  [0xac00, 0xd7a3],
+  [0xff00, 0xffef],
+]
+
+/**
+ * UTF-16 CJK text without a BOM. Deliberately conservative; it only fires when:
+ *   - the bytes contain a C0 control byte other than tab/LF/CR. UTF-16 CJK text
+ *     almost always has one ("、" is 30 01, a space is 00 20), while Latin-1,
+ *     UTF-8 and legacy CJK text never do. Without this, pairs of ASCII letters
+ *     read as ideographs ("Bush hid the facts");
+ *   - every code unit is CJK (ranges above) or printable ASCII/tab/LF/CR;
+ *   - at least 4 code units, and 30% of them, are CJK;
+ *   - exactly one byte order fits. Otherwise the input is left to the legacy guess.
+ */
+function guessUtf16Cjk(bytes: Uint8Array): Detection | null {
+  if (bytes.length < 16) return null
+  if (!bytes.some((b) => b < 0x20 && b !== 0x09 && b !== 0x0a && b !== 0x0d)) return null
+  const le = looksLikeCjk(bytes, 'utf-16le')
+  const be = looksLikeCjk(bytes, 'utf-16be')
+  if (le === be) return null
+  const charset = le ? 'utf-16le' : 'utf-16be'
+  return { charset, reason: `CJK text pattern (${charsetInfo(charset).label} without BOM)`, confidence: 'low' }
+}
+
+function looksLikeCjk(bytes: Uint8Array, charset: 'utf-16le' | 'utf-16be'): boolean {
+  let text: string
+  try {
+    // stream: a surrogate pair cut at the end of a sample is held back, not an error.
+    text = new TextDecoder(charset, { fatal: true, ignoreBOM: true }).decode(bytes, { stream: true })
+  } catch {
+    return false
+  }
+  let cjk = 0
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i)
+    if (CJK_RANGES.some(([lo, hi]) => c >= lo && c <= hi)) cjk++
+    else if (!((c >= 0x20 && c <= 0x7e) || c === 0x09 || c === 0x0a || c === 0x0d)) return false
+  }
+  return cjk >= 4 && cjk >= text.length * 0.3
+}
+
 const LATIN = /\p{Script=Latin}/u
 const CYRILLIC = /\p{Script=Cyrillic}/u
 const VIET_VOWEL = /[aeiouyăâêôơưAEIOUYĂÂÊÔƠƯ]/u
@@ -498,10 +555,11 @@ const VIET_VOWEL = /[aeiouyăâêôơưAEIOUYĂÂÊÔƠƯ]/u
  * hanzi/kanji, KS X 1001 hangul) high and rare/extension rows low; single-byte
  * charsets score letters that sit next to other letters.
  */
-function scoreCharset(bytes: Uint8Array, charset: CharsetId): number | null {
+function scoreCharset(bytes: Uint8Array, charset: CharsetId, partial = false): number | null {
   let text: string
   try {
-    text = new TextDecoder(charset, { fatal: true }).decode(bytes)
+    // partial: the bytes are a prefix, so a sequence cut at the end is not an error.
+    text = new TextDecoder(charset, { fatal: true }).decode(bytes, { stream: partial })
   } catch {
     return null
   }

@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { CHARSETS, decodeBytes, detectCharset, encodeText, encoderTable, type CharsetId } from './charset'
+import { describe, expect, it, vi } from 'vitest'
+import { CHARSETS, DETECT_SAMPLE_BYTES, decodeBytes, detectCharset, encodeText, encoderTable, type CharsetId } from './charset'
 import { bytesToBase64 } from './encoding'
 
 const hex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, '0')).join(' ')
@@ -82,13 +82,21 @@ describe('charset encode', () => {
     expect(encodeText('\udbff\udfff\udfff', 'utf-8').unmappable).toEqual([
       { char: '\udfff', codePoint: 0xdfff, count: 1, firstIndex: 1 },
     ])
+    // One TextEncoder call for the whole input (a per-code-point loop took 0.6-2.9 s
+    // on ~1 M code units). Counting calls is deterministic, unlike a time bound.
     const big = 'Xin chào 😀 thế giới. '.repeat(50_000) // ~1.1 M UTF-16 code units
-    const start = performance.now()
-    const large = encodeText(big, 'utf-8')
-    const ms = performance.now() - start
+    const spy = vi.spyOn(TextEncoder.prototype, 'encode')
+    let large: ReturnType<typeof encodeText>
+    try {
+      large = encodeText(big, 'utf-8')
+      expect(spy).toHaveBeenCalledTimes(1)
+      encodeText('a\ud800b😀\udc00', 'utf-8')
+      expect(spy).toHaveBeenCalledTimes(2)
+    } finally {
+      spy.mockRestore()
+    }
     expect(large.bytes).toEqual(new TextEncoder().encode(big))
     expect(large.unmappable).toEqual([])
-    expect(ms).toBeLessThan(1500) // per code point it took 0.6-2.9 s; generous bound for slow CI runners
   })
 
   it('adds a BOM only for Unicode charsets when asked', () => {
@@ -203,5 +211,53 @@ describe('charset detection', () => {
     const d = detectCharset(enc(text, charset))
     expect(d.charset).toBe(charset)
     expect(d.confidence).toBe('low')
+  })
+
+  it.each([
+    ['Chinese', '这是一段简体中文的测试文本，我们来看看结果。'],
+    ['Japanese', 'これは日本語のテキストです。カタカナも少し。'],
+    ['Korean', '이것은 한국어 텍스트입니다. 결과를 확인해 봅시다.'],
+    ['Chinese with ASCII', 'UTF-16 编码的文本 (version 2) 没有字节顺序标记'],
+  ])('recognises BOM-less UTF-16 %s text', (_, text) => {
+    for (const charset of ['utf-16le', 'utf-16be'] as const) {
+      const d = detectCharset(enc(text, charset))
+      expect(d, charset).toMatchObject({ charset, confidence: 'low' })
+      expect(d.reason).toMatch(/without BOM/)
+    }
+  })
+
+  it('does not take Latin-1, UTF-8 or legacy CJK bytes for BOM-less UTF-16', () => {
+    // Pairs of ASCII letters read as CJK ideographs in UTF-16; no control bytes, so not UTF-16.
+    expect(detectCharset(enc('Bush hid the facts', 'utf-8')).charset).toBe('utf-8')
+    expect(detectCharset(enc('this app can break', 'utf-8')).charset).toBe('utf-8')
+    for (const [text, charset] of [
+      ['Ça coûte très cher, déjà réglé à côté.', 'iso-8859-1'],
+      ['Größere Übungen für Bären.', 'windows-1252'],
+      ['这是一段简体中文的测试文本，我们来看看结果。', 'utf-8'],
+      ['これは日本語のテキストです。', 'utf-8'],
+      ['これは日本語のテキストです。カタカナも少し。', 'shift_jis'],
+      ['这是一段简体中文的测试文本，我们来看看结果。', 'gbk'],
+      ['이것은 한국어 텍스트입니다. 결과를 확인해 봅시다.', 'euc-kr'],
+    ] as [string, CharsetId][]) {
+      expect(detectCharset(enc(text, charset)).charset, `${charset}: ${text}`).not.toMatch(/^utf-16/)
+    }
+    // Too short to judge: fewer than 8 code units.
+    expect(detectCharset(enc('你好，世界', 'utf-16le')).reason).not.toMatch(/CJK/)
+  })
+
+  it('samples large inputs for the heuristics but not for the UTF-8 check', () => {
+    const big = enc('Съешь же ещё этих мягких французских булок. '.repeat(10_000), 'windows-1251')
+    expect(big.length).toBeGreaterThan(DETECT_SAMPLE_BYTES)
+    const d = detectCharset(big)
+    expect(d.charset).toBe('windows-1251')
+    expect(d.reason).toMatch(/first 64 KB/)
+    // Legacy multi-byte text whose sample ends inside a character is still scored.
+    const sjis = enc('これは日本語のテキストです。'.repeat(5000), 'shift_jis')
+    expect(detectCharset(sjis.subarray(0, DETECT_SAMPLE_BYTES + 1)).charset).toBe('shift_jis')
+    // Invalid UTF-8 after the sample is still found: the strict UTF-8 check reads everything.
+    const utf8 = enc('é'.repeat(DETECT_SAMPLE_BYTES), 'utf-8')
+    expect(detectCharset(utf8).charset).toBe('utf-8')
+    const broken = new Uint8Array([...utf8, 0xff])
+    expect(detectCharset(broken).charset).not.toBe('utf-8')
   })
 })
