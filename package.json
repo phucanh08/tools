@@ -24,6 +24,7 @@
     "bcryptjs": "^3.0.3",
     "he": "1.2.0",
     "js-beautify": "^2.0.3",
+    "lucide-react": "^1.54.0",
     "marked": "^18.1.0",
     "papaparse": "^5.7.0",
     "react": "^19.3.0",

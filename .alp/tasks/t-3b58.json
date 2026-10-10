@@ -1,0 +1,44 @@
+{
+  "description": "User thấy UI \"xấu xấu\", muốn làm lại phần điều hướng theo phong cách Ant Design: Layout Sider + Menu có nhóm, trạng thái đang chọn, thu gọn được; header có breadcrumb, nút đổi theme. Giữ route và tool như cũ, hỗ trợ light/dark, dùng được trên mobile. Ưu tiên chỉ lấy design language của Ant Design; dùng thư viện antd thì phải có lý do và cân nhắc bundle.",
+  "type": "feature",
+  "priority": 1,
+  "labels": [],
+  "paths": [],
+  "parent": null,
+  "blockedBy": [],
+  "discoveredFrom": null,
+  "related": [],
+  "gates": [],
+  "assignee": {
+    "agent": "lead",
+    "assignment": "alp-child-e302f869-7746-44b5-af19-63aab49ec58e",
+    "pid": 30654,
+    "pidStartedAt": 1791565944171,
+    "epoch": "ce2ff2f3-368f-44fd-887f-b1db17c8652c",
+    "since": "2026-10-10T00:27:41.744Z"
+  },
+  "handoff": null,
+  "verified": null,
+  "closed": null,
+  "log": [
+    {
+      "at": "2026-10-10T00:27:27.441Z",
+      "by": "main",
+      "event": "created"
+    },
+    {
+      "at": "2026-10-10T00:27:41.744Z",
+      "by": "main",
+      "event": "started",
+      "to": "lead",
+      "assignment": "alp-child-e302f869-7746-44b5-af19-63aab49ec58e"
+    }
+  ],
+  "rev": 2,
+  "id": "t-3b58",
+  "title": "Làm lại navbar/sidebar đẹp hơn, tham khảo Ant Design",
+  "status": "in_progress",
+  "createdBy": "main",
+  "createdAt": "2026-10-10T00:27:27.441Z",
+  "updatedAt": "2026-10-10T00:27:41.744Z"
+}

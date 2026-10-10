@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest'
+import { parseClosedGroups } from './prefs'
 import { normalizePath, routableHref } from './router'
 import { CATEGORIES, TOOLS } from './tools/meta'
+import { CATEGORY_ICONS, TOOL_ICONS } from './tools/icons'
 import { TOOL_LOADERS } from './tools/registry'
 import { filterTools, findTool, groupByCategory } from './tools/search'
 
 describe('tool registry', () => {
-  it('has an icon for every tool and category', () => {
-    for (const item of [...TOOLS, ...CATEGORIES]) expect(item.icon.trim().length).toBeGreaterThan(0)
+  it('has an icon for every tool and category, and no stale ones', () => {
+    expect(Object.keys(TOOL_ICONS).sort()).toEqual(TOOLS.map((t) => t.id).sort())
+    expect(Object.keys(CATEGORY_ICONS).sort()).toEqual(CATEGORIES.map((c) => c.id).sort())
   })
   it('has a loader for every tool id and nothing else', () => {
     expect(Object.keys(TOOL_LOADERS).sort()).toEqual(TOOLS.map((t) => t.id).sort())
@@ -60,5 +63,13 @@ describe('search', () => {
   it('finds tools by path', () => {
     expect(findTool('/json/format')?.title).toBe('JSON Formatter')
     expect(findTool('/nope')).toBeUndefined()
+  })
+})
+
+
+describe('sidebar preferences', () => {
+  it('accepts only unique known category ids from persisted data', () => {
+    expect(parseClosedGroups('["json","bogus",null,7,"crypto","json"]')).toEqual(['json', 'crypto'])
+    for (const raw of [null, '', '{', '{}', '"json"', '1']) expect(parseClosedGroups(raw)).toEqual([])
   })
 })
