@@ -584,8 +584,12 @@ const PREVIEW_UNITS = 40
  * hint when detection made a low-confidence legacy guess. Much looser than
  * guessUtf16Cjk, which must not take legacy text for UTF-16 and so misses short
  * CJK text: here every unit must be CJK or printable ASCII, with at least two
- * CJK units making up half the text. Other text can pass too (pairs of Latin-1
- * letters read as ideographs), so callers show the preview and let the user choose.
+ * CJK units making up half the text. Other text passes too, so callers show the
+ * preview and let the user choose: short legacy double-byte CJK (Shift_JIS,
+ * GBK, EUC-KR lead bytes read big-endian land in the ideograph and Hangul
+ * blocks) and Latin-1 text with paired letters (windows-1252 "café" reads as two
+ * ideographs). No cheap gate separates those from real UTF-16 without missing
+ * many short UTF-16 texts, which this hint exists for.
  */
 export function utf16CjkAlternatives(bytes: Uint8Array, detection: Detection): Utf16Alternative[] {
   if (detection.confidence !== 'low' || detection.charset === 'utf-16le' || detection.charset === 'utf-16be') return []

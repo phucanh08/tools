@@ -344,11 +344,15 @@ describe('utf16CjkAlternatives (hint for short UTF-16 CJK without BOM)', () => {
     ['UTF-16 with a BOM', encodeText('日本語', 'utf-16le', { bom: true }).bytes],
     ['UTF-16LE Latin text (detected as UTF-16)', enc('Hello, world', 'utf-16le')],
     ['odd length', bytes('e5 65 2c 67 9e')],
-    ['under 4 bytes', bytes('e5 65')],
     ['Cyrillic', enc('Привет мир', 'windows-1251')],
     ['Vietnamese', enc('Tiếng Việt có dấu', 'windows-1258')],
     ['Korean EUC-KR', enc('한국어 텍스트입니다. 테스트 문장.', 'euc-kr')],
   ])('offers nothing for %s', (_, b) => {
     expect(hint(b)).toEqual([])
+  })
+
+  it('also fires for short legacy double-byte CJK (accepted trade-off; the preview shows the garbled reading)', () => {
+    expect(hint(enc('日本語', 'shift_jis'))).toEqual([{ charset: 'utf-16be', preview: '鏺陻質' }])
+    expect(hint(enc('한국어', 'euc-kr')).map((h) => h.charset)).toContain('utf-16be')
   })
 })

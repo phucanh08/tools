@@ -171,11 +171,10 @@ export default function Base64Charset() {
           {utf16Hints.length > 0 ? (
             <span data-testid="utf16-hint">
               {' '}
-              It may be UTF-16 without a byte order mark:
-              {utf16Hints.map((h) => (
+              It may also be UTF-16 without a byte order mark:
+              {utf16Hints.map((h, i) => (
                 <span key={h.charset}>
-                  {' '}
-                  as {charsetInfo(h.charset).label} it reads “{h.preview}”{' '}
+                  {i > 0 ? ' or' : ''} as {charsetInfo(h.charset).label} it reads “{h.preview}”{' '}
                   <button type="button" className="btn btn-small" onClick={() => setDecodeAs(h.charset)}>
                     Decode as {charsetInfo(h.charset).label}
                   </button>
@@ -184,7 +183,7 @@ export default function Base64Charset() {
             </span>
           ) : (
             dec.detection?.confidence === 'low' &&
-            !dec.detection.charset.startsWith('utf-16') && <> UTF-16 without a byte order mark is only detected for mostly Latin-script text.</>
+            !dec.detection.charset.startsWith('utf-16') && <> UTF-16 without a byte order mark is only detected for mostly Latin-script text or longer CJK text.</>
           )}
         </Notice>
       )}

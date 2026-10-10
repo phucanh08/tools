@@ -110,7 +110,10 @@ export async function run({ page, base, fail, ok }) {
   if (!hintText.includes(`UTF-16LE it reads “${UTF16_JA}”`)) fail(`charset: no UTF-16LE hint for short UTF-16 Japanese ("${hintText}")`)
   else {
     await page.getByRole('button', { name: 'Decode as UTF-16LE', exact: true }).click()
-    const ja = await valueOf(page, 'Decoded text')
+    // The pane already holds the legacy decode: wait for the UTF-16 text itself.
+    const el = await pane(page, 'Decoded text').elementHandle()
+    await page.waitForFunction(({ el, want }) => el.value === want, { el, want: UTF16_JA }, { timeout: 5000 }).catch(() => {})
+    const ja = await pane(page, 'Decoded text').inputValue()
     const decodeAs = await page.getByLabel('Decode as', { exact: true }).inputValue()
     if (ja !== UTF16_JA || decodeAs !== 'utf-16le') fail(`charset: UTF-16 hint click -> "${ja}" / ${decodeAs}`)
     else ok('charset: UTF-16LE hint for short Japanese, one click decodes it')
