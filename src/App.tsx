@@ -158,7 +158,7 @@ export function App() {
       <aside
         id="sidebar"
         className={`sider${menuOpen ? ' open' : ''}`}
-        aria-label="Sidebar"
+        aria-label="Tool menu"
         role={modalDrawer ? 'dialog' : undefined}
         aria-modal={modalDrawer ? true : undefined}
       >
