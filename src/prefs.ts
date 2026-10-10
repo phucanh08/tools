@@ -48,6 +48,15 @@ export function readClosedGroups(): CategoryId[] {
   return parseClosedGroups(read(CLOSED_KEY))
 }
 
+/**
+ * Next closed-group list after clicking a group title. While the menu is filtered every group is
+ * forced open, so the click is a no-op (same array) instead of persisting a hidden state change.
+ */
+export function toggleClosedGroup(closed: readonly CategoryId[], id: CategoryId, filtering: boolean): readonly CategoryId[] {
+  if (filtering) return closed
+  return closed.includes(id) ? closed.filter((c) => c !== id) : [...closed, id]
+}
+
 export function writeClosedGroups(ids: readonly CategoryId[]): void {
   write(CLOSED_KEY, ids.length ? JSON.stringify(ids) : null)
 }

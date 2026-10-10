@@ -9,14 +9,7 @@
   "discoveredFrom": null,
   "related": [],
   "gates": [],
-  "assignee": {
-    "agent": "lead",
-    "assignment": "alp-child-e302f869-7746-44b5-af19-63aab49ec58e",
-    "pid": 30654,
-    "pidStartedAt": 1791565944171,
-    "epoch": "ce2ff2f3-368f-44fd-887f-b1db17c8652c",
-    "since": "2026-10-10T00:27:41.744Z"
-  },
+  "assignee": null,
   "handoff": null,
   "verified": null,
   "closed": null,
@@ -32,13 +25,44 @@
       "event": "started",
       "to": "lead",
       "assignment": "alp-child-e302f869-7746-44b5-af19-63aab49ec58e"
+    },
+    {
+      "at": "2026-10-10T01:28:17.424Z",
+      "by": "main",
+      "event": "updated",
+      "note": "User chose push before independent review. Main committed dad7902, pushed; CI run 37960380954 success (build+browser+deploy), live bundle index-BLOaTABv.js contains new sider. Pending: lead handoff (stalled on parked Codex peer alp-child-63200885, ALP issue #42) and independent reviewer pass on dad7902; then close."
+    },
+    {
+      "at": "2026-10-10T01:41:43.378Z",
+      "by": "lead",
+      "event": "released",
+      "reason": "handoff complete"
+    },
+    {
+      "at": "2026-10-10T01:48:18.539Z",
+      "by": "main",
+      "event": "started",
+      "to": "lead",
+      "assignment": "alp-child-3b84bcff-9778-4765-acf7-a8c7ebad5a1f"
+    },
+    {
+      "at": "2026-10-10T02:00:06.108Z",
+      "by": "lead",
+      "event": "released",
+      "reason": "assignment canceled without a handoff"
+    },
+    {
+      "at": "2026-10-10T02:06:10.590Z",
+      "by": "main",
+      "event": "updated",
+      "note": "State 2026-10-10 02:06: dad7902 live. Reviewer (claude:fable) on dad7902: pass_with_findings, 2 medium + 6 low. Lead fix round alp-child-3b84bcff ended; its result was not seen by main (turn ended). The working tree holds uncommitted edits to App.tsx, styles.css, prefs.ts, app.test.ts and browser-check.mjs, with no commit. Next: alp_recall that assignment, verify, re-review, commit, push."
     }
   ],
-  "rev": 2,
+  "rev": 7,
   "id": "t-3b58",
   "title": "Làm lại navbar/sidebar đẹp hơn, tham khảo Ant Design",
-  "status": "in_progress",
+  "status": "open",
   "createdBy": "main",
   "createdAt": "2026-10-10T00:27:27.441Z",
-  "updatedAt": "2026-10-10T00:27:41.744Z"
+  "updatedAt": "2026-10-10T02:06:10.591Z"
 }

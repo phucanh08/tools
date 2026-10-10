@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { GitHubIcon, ToolIcon } from './components/Icons'
 import { Spinner } from './components/Messages'
-import { readClosedGroups, readCollapsed, writeClosedGroups, writeCollapsed } from './prefs'
+import { readClosedGroups, readCollapsed, toggleClosedGroup, writeClosedGroups, writeCollapsed } from './prefs'
 import { interceptLinks, usePath } from './router'
 import { CATEGORY_ICONS } from './tools/icons'
 import { CATEGORIES, SITE_NAME, type CategoryId, type ToolMeta } from './tools/meta'
@@ -51,6 +51,8 @@ export function App() {
   const tool = path === '/' ? undefined : findTool(path)
   const notFound = path !== '/' && !tool
   const category = tool ? CATEGORIES.find((c) => c.id === tool.category) : undefined
+  /** On narrow screens the open sider is a modal drawer over the inert page. */
+  const modalDrawer = drawer && menuOpen
 
   const setCollapsed = (c: boolean) => {
     setCollapsedState(c)
@@ -148,11 +150,18 @@ export function App() {
 
   return (
     <div className={`app${collapsed ? ' sider-collapsed' : ''}`}>
-      <a className="skip-link" href="#main" data-native="">
+      {/* Like the page behind it, the skip link is out of reach while the modal drawer is open. */}
+      <a className="skip-link" href="#main" data-native="" inert={modalDrawer}>
         Skip to content
       </a>
       {menuOpen && <button className="menu-backdrop" type="button" aria-label="Close tool menu" tabIndex={-1} onClick={closeDrawer} />}
-      <aside id="sidebar" className={`sider${menuOpen ? ' open' : ''}`} aria-label="Sidebar">
+      <aside
+        id="sidebar"
+        className={`sider${menuOpen ? ' open' : ''}`}
+        aria-label="Sidebar"
+        role={modalDrawer ? 'dialog' : undefined}
+        aria-modal={modalDrawer ? true : undefined}
+      >
         <div className="sider-inner">
           <div className="sider-brand">
             <a href="/" className="brand" title={collapsed ? SITE_NAME : undefined}>
@@ -179,7 +188,7 @@ export function App() {
           </div>
         </div>
       </aside>
-      <div className="layout" inert={drawer && menuOpen}>
+      <div className="layout" inert={modalDrawer}>
         <header className="header">
           <button
             type="button"
@@ -333,22 +342,21 @@ function ToolMenu({
   collapsed: boolean
   onExpand: () => void
 }) {
-  const [closed, setClosed] = useState<CategoryId[]>(() => readClosedGroups().filter((id) => id !== findTool(activePath)?.category))
+  const [closed, setClosed] = useState<readonly CategoryId[]>(() => readClosedGroups().filter((id) => id !== findTool(activePath)?.category))
   const [dismissed, setDismissed] = useState<CategoryId | null>(null)
   const [flyout, setFlyout] = useState<CategoryId | null>(null)
   const [openedFor, setOpenedFor] = useState(activePath)
+  const filtering = query.trim() !== ''
   const groups = groupByCategory(filterTools(query))
   const activeCategory = findTool(activePath)?.category
 
-  const updateClosed = (next: CategoryId[]) => {
-    setClosed(next)
-    writeClosedGroups(next)
-  }
+  // Persist after commit, never during render.
+  useEffect(() => writeClosedGroups(closed), [closed])
 
   // Navigating to a tool reveals its group (state adjustment during render).
   if (openedFor !== activePath) {
     setOpenedFor(activePath)
-    if (activeCategory && closed.includes(activeCategory)) updateClosed(closed.filter((c) => c !== activeCategory))
+    if (activeCategory && closed.includes(activeCategory)) setClosed(closed.filter((c) => c !== activeCategory))
   }
 
   return (
@@ -364,7 +372,7 @@ function ToolMenu({
         </li>
         {groups.map((g) => {
           const id = g.category.id
-          const open = query.trim() !== '' || !closed.includes(id)
+          const open = filtering || !closed.includes(id)
           const Icon = CATEGORY_ICONS[id]
           const listId = `menu-${id}`
           return (
@@ -407,10 +415,11 @@ function ToolMenu({
                   if (collapsed) {
                     // Icons-only sider: expand it and show this group.
                     onExpand()
-                    if (closed.includes(id)) updateClosed(closed.filter((c) => c !== id))
+                    if (closed.includes(id)) setClosed(closed.filter((c) => c !== id))
                     return
                   }
-                  updateClosed(open ? [...closed, id] : closed.filter((c) => c !== id))
+                  // While filtering, every group is forced open: clicks must not change the saved state.
+                  setClosed(toggleClosedGroup(closed, id, filtering))
                 }}
               >
                 <span className="menu-icon">

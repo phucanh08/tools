@@ -1,0 +1,32 @@
+{
+  "description": "User duyệt cả 8 tool (nhóm 1 + 2). Tất cả chạy client-side, theo UI Ant Design hiện tại, có unit test và có trong browser-check: (1) Validator & Repair: kiểm tra hợp lệ, báo vị trí lỗi, nhận dạng standard/URL-safe/MIME, normalize/repair padding và khoảng trắng; (2) Base64 → Media Viewer: đoán MIME qua magic bytes, xem trước ảnh/audio/video/PDF, tải về đúng đuôi; (3) Image → Base64 + snippet: data URI, CSS background-image, HTML img, Markdown, chuỗi JSON, % tăng kích thước; (4) Basic Auth encode/decode; (5) Text ↔ Base64 nhiều charset (UTF-8/16, Latin-1, Windows-1258, Shift_JIS…) + tự đoán; (6) Gzip/Deflate + Base64 (CompressionStream); (7) Base-N: Base32, Base58, Base85/Ascii85, Base36; (8) MIME 76 cột + Uuencode. User muốn dùng Codex cho peer, nếu Codex hết lượt thì chuyển sang Claude.",
+  "type": "epic",
+  "priority": 1,
+  "labels": [],
+  "paths": [],
+  "parent": null,
+  "blockedBy": [
+    "t-3b58"
+  ],
+  "discoveredFrom": null,
+  "related": [],
+  "gates": [],
+  "assignee": null,
+  "handoff": null,
+  "verified": null,
+  "closed": null,
+  "log": [
+    {
+      "at": "2026-10-10T02:13:06.343Z",
+      "by": "main",
+      "event": "created"
+    }
+  ],
+  "rev": 1,
+  "id": "t-34ae",
+  "title": "Bổ sung 8 tool Base64 (tham khảo base64.guru)",
+  "status": "open",
+  "createdBy": "main",
+  "createdAt": "2026-10-10T02:13:06.343Z",
+  "updatedAt": "2026-10-10T02:13:06.343Z"
+}

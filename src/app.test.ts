@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseClosedGroups } from './prefs'
+import { parseClosedGroups, toggleClosedGroup } from './prefs'
 import { normalizePath, routableHref } from './router'
 import { CATEGORIES, TOOLS } from './tools/meta'
 import { CATEGORY_ICONS, TOOL_ICONS } from './tools/icons'
@@ -71,5 +71,16 @@ describe('sidebar preferences', () => {
   it('accepts only unique known category ids from persisted data', () => {
     expect(parseClosedGroups('["json","bogus",null,7,"crypto","json"]')).toEqual(['json', 'crypto'])
     for (const raw of [null, '', '{', '{}', '"json"', '1']) expect(parseClosedGroups(raw)).toEqual([])
+  })
+
+  it('toggles a group without duplicates, and ignores clicks while filtering', () => {
+    expect(toggleClosedGroup([], 'json', false)).toEqual(['json'])
+    expect(toggleClosedGroup(['crypto', 'json'], 'json', false)).toEqual(['crypto'])
+    let closed = toggleClosedGroup([], 'json', false)
+    closed = toggleClosedGroup(closed, 'json', false)
+    closed = toggleClosedGroup(closed, 'json', false)
+    expect(closed).toEqual(['json'])
+    const before = ['crypto'] as const
+    for (const id of ['crypto', 'json'] as const) expect(toggleClosedGroup(before, id, true)).toBe(before)
   })
 })
