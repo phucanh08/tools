@@ -1,4 +1,4 @@
-// Media type detection from magic bytes, fuller than encoding.sniffMime.
+// Media type detection from magic bytes (the single MIME sniffer for all tools).
 // Pure functions, no DOM access. Signatures follow the WHATWG MIME Sniffing
 // Standard (§6 "Matching a MIME type pattern") and each format's own spec.
 
@@ -215,9 +215,15 @@ function isUtf16Text(bytes: Uint8Array): boolean {
   const le = bytes[0] === 0xff && bytes[1] === 0xfe
   if (!le && !(bytes[0] === 0xfe && bytes[1] === 0xff)) return false
   const head = bytes.subarray(2, 2 + 4096)
-  // stream: a surrogate pair cut at the 4 KB boundary is held back instead of becoming U+FFFD.
-  const text = new TextDecoder(le ? 'utf-16le' : 'utf-16be').decode(head, { stream: true })
-  return !text.includes('�') && !hasBinaryControls(text)
+  // fatal: only malformed input (lone surrogates) is rejected; a genuine U+FFFD
+  // character in the text is fine. stream: a surrogate pair cut at the 4 KB
+  // boundary is held back instead of throwing.
+  try {
+    const text = new TextDecoder(le ? 'utf-16le' : 'utf-16be', { fatal: true }).decode(head, { stream: true })
+    return !hasBinaryControls(text)
+  } catch {
+    return false
+  }
 }
 
 const HEIF_BRANDS = new Set(['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'mif1', 'msf1'])

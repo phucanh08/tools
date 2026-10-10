@@ -102,9 +102,18 @@ export function uudecode(text: string): UuDecoded {
     const bad = body.search(/[^\x20-\x60]/)
     if (bad >= 0) throw new Error(`Line ${n + 1}: invalid character "${body[bad]}" at column ${bad + 2}`)
     if (body.length < needed) {
-      // Trailing spaces (zero values) may be stripped in transit; more than two missing suggests truncation.
-      const missing = needed - body.length
-      if (missing > 2) warnings.push(`Line ${n + 1}: ${missing} missing character(s) padded with zeros; the line may be truncated`)
+      // Trailing spaces (value 0) are often stripped in transit, so a short line is
+      // padded with zeros. Padding characters past the last byte carry no data;
+      // only characters that hold data bits are worth a warning, and even those
+      // may just be zero bytes whose spaces were stripped.
+      const dataChars = Math.ceil((count * 4) / 3)
+      const missing = dataChars - body.length
+      if (missing > 0) {
+        warnings.push(
+          `Line ${n + 1}: ${missing} data character(s) missing, decoded as zero bits ` +
+            `(trailing spaces may have been stripped, or the line is truncated)`,
+        )
+      }
       body = body.padEnd(needed, ' ')
     }
     if (body.length > needed + 1) warnings.push(`Line ${n + 1}: ${body.length - needed} extra character(s) ignored`)

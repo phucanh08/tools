@@ -113,6 +113,11 @@ describe('sniffMimeType', () => {
     expect(sniffMimeType(new Uint8Array([0xff, 0xfe, 0x48, 0x00, 0x69, 0x00]))).toBe('text/plain')
     expect(sniffMimeType(utf16le('Hello, world! Xin chào'.repeat(40)))).toBe('text/plain')
     expect(sniffMimeType(utf16be('Hello'))).toBe('text/plain')
+    // A genuine U+FFFD in UTF-16 text is still text (it used to fall through to the MPEG frame-sync check).
+    expect(sniffMimeType(utf16le('\ufffd'.repeat(3) + ' replacement characters in UTF-16 text'))).toBe('text/plain')
+    expect(sniffMimeType(utf16be('Unknown: \ufffd'))).toBe('text/plain')
+    // A lone surrogate is malformed UTF-16, so the bytes are not treated as text.
+    expect(sniffMimeType(new Uint8Array([0xff, 0xfe, 0x00, 0xd8, 0x41, 0x00]))).not.toBe('text/plain')
     expect(sniffMimeType(utf8Encode('ID3v2 is a metadata container used with MP3 files.'))).toBe('text/plain')
     expect(sniffMimeType(utf8Encode('BZh9 hello'))).toBe('text/plain')
     expect(sniffMimeType(utf8Encode('MZ is the DOS header magic. '.repeat(4)))).toBe('text/plain')

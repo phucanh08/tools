@@ -139,42 +139,6 @@ export function dataUrlMime(input: string): string | null {
   return m ? m[1] || 'text/plain' : null
 }
 
-/** Best-effort MIME sniffing from magic bytes. */
-export function sniffMime(bytes: Uint8Array): string | null {
-  const starts = (sig: number[], offset = 0) => sig.every((b, i) => bytes[offset + i] === b)
-  if (starts([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) return 'image/png'
-  if (starts([0xff, 0xd8, 0xff])) return 'image/jpeg'
-  if (starts([0x47, 0x49, 0x46, 0x38])) return 'image/gif'
-  if (starts([0x52, 0x49, 0x46, 0x46]) && starts([0x57, 0x45, 0x42, 0x50], 8)) return 'image/webp'
-  if (starts([0x42, 0x4d])) return 'image/bmp'
-  if (starts([0x00, 0x00, 0x01, 0x00])) return 'image/x-icon'
-  if (starts([0x25, 0x50, 0x44, 0x46])) return 'application/pdf'
-  if (starts([0x50, 0x4b, 0x03, 0x04])) return 'application/zip'
-  if (starts([0x1f, 0x8b])) return 'application/gzip'
-  const head = new TextDecoder().decode(bytes.subarray(0, 256)).trimStart()
-  if (head.startsWith('<svg') || (head.startsWith('<?xml') && head.includes('<svg'))) return 'image/svg+xml'
-  return null
-}
-
-export function extensionForMime(mime: string): string {
-  const map: Record<string, string> = {
-    'image/png': 'png',
-    'image/jpeg': 'jpg',
-    'image/gif': 'gif',
-    'image/webp': 'webp',
-    'image/bmp': 'bmp',
-    'image/x-icon': 'ico',
-    'image/svg+xml': 'svg',
-    'application/pdf': 'pdf',
-    'application/zip': 'zip',
-    'application/gzip': 'gz',
-    'application/json': 'json',
-    'text/plain': 'txt',
-    'text/html': 'html',
-  }
-  return map[mime] ?? 'bin'
-}
-
 export function formatSize(n: number): string {
   if (n < 1024) return `${n} B`
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`

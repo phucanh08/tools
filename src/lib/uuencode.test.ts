@@ -64,16 +64,24 @@ describe('uudecode', () => {
 
   })
 
-  it('validates the length character and flags heavily padded lines', () => {
+  it('validates the length character and flags lines missing data characters', () => {
     // "N" would mean 46 bytes (max is 45 = "M"); "a" and "~" are outside the alphabet.
     expect(() => uudecode('begin 644 x\nN0V%T\n`\nend')).toThrow(/Line 2: invalid length character "N"/)
     expect(() => uudecode('begin 644 x\na0V%T\n`\nend')).toThrow(/invalid length character "a"/)
     expect(uudecode('begin 644 x\nM' + '`'.repeat(60) + '\n`\nend').bytes.length).toBe(45)
-    // "#" (3 bytes) needs 4 characters; 2 missing is normal trailing-space loss, 3 is not.
-    expect(uudecode('begin 644 x\n#0V\n`\nend').warnings).toEqual([])
-    expect(uudecode('begin 644 x\n#0\n`\nend').warnings).toEqual([
-      'Line 2: 3 missing character(s) padded with zeros; the line may be truncated',
-    ])
+    // "#" (3 bytes) needs 4 characters, all of which hold data bits.
+    const short = (body: string) => uudecode(`begin 644 x\n${body}\n\`\nend`).warnings
+    const warn = (missing: number) =>
+      `Line 2: ${missing} data character(s) missing, decoded as zero bits (trailing spaces may have been stripped, or the line is truncated)`
+    expect(short('#0V%')).toEqual([warn(1)])
+    expect(short('#0V')).toEqual([warn(2)])
+    // "!" (1 byte) uses 2 data characters + 2 padding: stripped padding is not a warning.
+    expect(short('!0V')).toEqual([])
+    expect(short('!0')).toEqual([warn(1)])
+    // "\"" (2 bytes) uses 3 data characters + 1 padding.
+    expect(short('"0V%')).toEqual([])
+    expect(short('"0V')).toEqual([warn(1)])
+    expect(uudecode('begin 644 x\n"0V%\n`\nend').bytes).toEqual(new Uint8Array([0x43, 0x61]))
   })
 
   it('makes download names safe', () => {

@@ -5,7 +5,6 @@ import {
   bytesToBase64,
   bytesToHex,
   hexToBytes,
-  sniffMime,
   textToBase64,
 } from './encoding'
 import { decodeEntities, encodeEntities, minifyHtml } from './html'
@@ -71,13 +70,6 @@ describe('hex', () => {
   })
 })
 
-describe('mime sniffing', () => {
-  it('detects PNG and SVG', () => {
-    expect(sniffMime(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0]))).toBe('image/png')
-    expect(sniffMime(new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"></svg>'))).toBe('image/svg+xml')
-    expect(sniffMime(new Uint8Array([1, 2, 3]))).toBeNull()
-  })
-})
 
 describe('html entities', () => {
   it('minimal encode escapes the five special characters', () => {

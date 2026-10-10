@@ -6,15 +6,8 @@ import { FilePicker } from '../../components/FilePicker'
 import { ErrorMessage, Notice, Spinner } from '../../components/Messages'
 import { TextPane } from '../../components/TextPane'
 import { attempt, errorMessage } from '../../hooks'
-import {
-  base64ToBytes,
-  bytesToBase64,
-  bytesToDataUrl,
-  dataUrlMime,
-  extensionForMime,
-  formatSize,
-  sniffMime,
-} from '../../lib/encoding'
+import { base64ToBytes, bytesToBase64, bytesToDataUrl, dataUrlMime, formatSize } from '../../lib/encoding'
+import { extensionFor, mediaType, sniffMimeType } from '../../lib/media-sniff'
 
 /** Outputs longer than this are not rendered into a textarea (it would freeze the page). */
 const MAX_DISPLAY_CHARS = 2_000_000
@@ -60,7 +53,7 @@ function FileToBase64() {
     setError('')
     try {
       const bytes = new Uint8Array(await file.arrayBuffer())
-      const mime = file.type || sniffMime(bytes) || 'application/octet-stream'
+      const mime = file.type || sniffMimeType(bytes) || 'application/octet-stream'
       setLoaded({ file, bytes, mime })
     } catch (e) {
       setError(`Could not read file: ${errorMessage(e)}`)
@@ -72,7 +65,7 @@ function FileToBase64() {
 
   const output = loaded ? (format === 'dataurl' ? bytesToDataUrl(loaded.bytes, loaded.mime) : bytesToBase64(loaded.bytes)) : ''
   const tooLarge = output.length > MAX_DISPLAY_CHARS
-  const isImage = loaded?.mime.startsWith('image/') ?? false
+  const isImage = loaded ? mediaType(loaded.mime).preview === 'image' : false
 
   return (
     <>
@@ -139,14 +132,14 @@ function Base64ToFile() {
       ? null
       : attempt(() => {
           const bytes = base64ToBytes(input)
-          const mime = dataUrlMime(input) ?? sniffMime(bytes) ?? 'application/octet-stream'
+          const mime = dataUrlMime(input) ?? sniffMimeType(bytes) ?? 'application/octet-stream'
           return { bytes, mime }
         })
 
   const value = decoded?.ok ? decoded.value : null
-  const defaultName = value ? `file.${extensionForMime(value.mime.split(';')[0] ?? '')}` : 'file.bin'
+  const defaultName = value ? `file.${extensionFor(value.mime)}` : 'file.bin'
   const filename = name.trim() || defaultName
-  const isImage = value?.mime.startsWith('image/') ?? false
+  const isImage = value ? mediaType(value.mime).preview === 'image' : false
 
   return (
     <>
